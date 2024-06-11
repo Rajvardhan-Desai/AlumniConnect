@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "alumni-connect-b4269a",
+          "appId": "1:197933192727:android:36c8476509be7d85faee52",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "alumni-connect-b4269a",
+          "configurations": {
+            "android": "1:197933192727:android:36c8476509be7d85faee52",
+            "ios": "1:197933192727:ios:27f0fd1b17b4709efaee52",
+            "web": "1:197933192727:web:8c65779b22dafd5cfaee52"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}
