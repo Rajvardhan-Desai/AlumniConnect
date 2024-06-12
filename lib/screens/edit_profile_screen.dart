@@ -7,10 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
-import '../util.dart';
-
-
+import 'package:alumniconnect/util.dart';
+import 'package:shimmer/shimmer.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -36,14 +34,17 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedCourse;
   String? _existingImageUrl;
 
-  // Store initial values to compare changes
   late Map<String, dynamic> _initialValues;
   bool _initialValuesSet = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    _selectedYear = _generateYears().first;
+    _selectedCourse = 'Information Technology'; // default course
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserProfile();
+    });
   }
 
   @override
@@ -64,14 +65,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _addListeners() {
-    _nameController.addListener(_checkForChanges);
-    _emailController.addListener(_checkForChanges);
-    _phoneController.addListener(_checkForChanges);
-    _dobController.addListener(_checkForChanges);
-    _organizationController.addListener(_checkForChanges);
-    _designationController.addListener(_checkForChanges);
-    _cityController.addListener(_checkForChanges);
-    _addressController.addListener(_checkForChanges);
+    _nameController.addListener(_debouncedCheckForChanges);
+    _emailController.addListener(_debouncedCheckForChanges);
+    _phoneController.addListener(_debouncedCheckForChanges);
+    _dobController.addListener(_debouncedCheckForChanges);
+    _organizationController.addListener(_debouncedCheckForChanges);
+    _designationController.addListener(_debouncedCheckForChanges);
+    _cityController.addListener(_debouncedCheckForChanges);
+    _addressController.addListener(_debouncedCheckForChanges);
   }
 
   Future<void> _loadUserProfile() async {
@@ -95,12 +96,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
         }
       } else {
         if (mounted) {
-          showSnackBar(scaffoldMessenger, "User not authenticated.", Colors.red);
+          showSnackBar(
+              scaffoldMessenger, "User not authenticated.", Colors.red);
         }
       }
     } catch (e) {
       if (mounted) {
-        showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
+        showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
+            Colors.red);
       }
     } finally {
       if (mounted) {
@@ -143,6 +146,10 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     _initialValuesSet = true; // Set flag after initializing values
   }
 
+  void _debouncedCheckForChanges() {
+    Future.delayed(const Duration(milliseconds: 300), _checkForChanges);
+  }
+
   void _checkForChanges() {
     if (!_initialValuesSet) {
       return; // Avoid checking changes if initial values are not set
@@ -173,26 +180,34 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final pickedFile = await ImagePicker().pickImage(source: source);
-    if (pickedFile != null) {
-      final file = File(pickedFile.path);
-      final fileSize = await file.length();
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final fileSize = await file.length();
 
-      // 2MB in bytes
-      const int maxFileSize = 2 * 1024 * 1024;
+        // 2MB in bytes
+        const int maxFileSize = 2 * 1024 * 1024;
 
-      if (fileSize <= maxFileSize) {
-        setState(() {
-          _image = file;
-        });
-        _checkForChanges();
+        if (fileSize <= maxFileSize) {
+          setState(() {
+            _image = file;
+          });
+          _checkForChanges();
+        } else {
+          if (mounted) {
+            showSnackBar(scaffoldMessenger, "Image size should be less than 2MB.",
+                Colors.red);
+          }
+        }
       } else {
         if (mounted) {
-          showSnackBar(scaffoldMessenger, "Image size should be less than 2MB.", Colors.red);
+          showSnackBar(scaffoldMessenger, "No image selected.", Colors.red);
         }
       }
-    } else {
-      if (mounted) showSnackBar(scaffoldMessenger, "No image selected.", Colors.red);
+    } catch (e) {
+      showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
+          Colors.red);
     }
   }
 
@@ -270,8 +285,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           String? imageUrl = _existingImageUrl;
           if (_image != null) {
             imageUrl = await _uploadImage(user.uid);
-            imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}',
-                '_200x200.${imageUrl.split('.').last}');
+            imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
           }
 
           // Update user email in Firebase Authentication
@@ -282,7 +296,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           await _updateUserProfile(user.uid, imageUrl);
 
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "Profile updated successfully!", Colors.green);
+            showSnackBar(scaffoldMessenger, "Profile updated successfully!",
+                Colors.green);
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -291,12 +306,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           }
         } else {
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "User not authenticated.", Colors.red);
+            showSnackBar(
+                scaffoldMessenger, "User not authenticated.", Colors.red);
           }
         }
       } catch (e) {
         if (mounted) {
-          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
+          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
+              Colors.red);
         }
       } finally {
         if (mounted) {
@@ -402,10 +419,11 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildImageOption(
-      {required IconData icon,
-        required String label,
-        required VoidCallback onTap}) {
+  Widget _buildImageOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -414,6 +432,36 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           Icon(icon, size: 40, color: const Color(0xffad7bff)),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(8.0),
+            child: const CircleAvatar(radius: 60, backgroundColor: Colors.white),
+          ),
+          const SizedBox(height: 20.0),
+          for (int i = 0; i < 9; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Container(
+                height: 37.0,
+                width: double.infinity,
+                color: Colors.white,
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                  color: Colors.white,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -429,7 +477,12 @@ class EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(
             color: Colors.white), // Set the back arrow color to white
       ),
-      body: SafeArea(
+      body: _isLoading
+          ? Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _buildShimmer(),
+      )
+          : SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -448,44 +501,21 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                   CustomTextFormField(
                     controller: _nameController,
                     labelText: 'Full Name',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your full name';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
                     controller: _emailController,
                     labelText: 'Email',
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                      if (!emailRegex.hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
+                    validator: _emailValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
                     controller: _phoneController,
                     labelText: 'Phone Number',
                     keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      final phoneRegex = RegExp(r'^\+?\d{10,15}$');
-                      if (!phoneRegex.hasMatch(value)) {
-                        return 'Please enter a valid phone number';
-                      }
-                      return null;
-                    },
+                    validator: _phoneValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
@@ -496,16 +526,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                       FilteringTextInputFormatter.allow(
                           RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
                     ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your date of birth';
-                      }
-                      final dateRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
-                      if (!dateRegex.hasMatch(value)) {
-                        return 'Please enter a valid date (dd/MM/yyyy)';
-                      }
-                      return null;
-                    },
+                    validator: _dateValidator,
                     readOnly: true,
                     onTap: () {
                       FocusScope.of(context).requestFocus(FocusNode());
@@ -516,57 +537,32 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                   CustomTextFormField(
                     controller: _organizationController,
                     labelText: 'Organization',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your organization';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
                     controller: _designationController,
                     labelText: 'Designation',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your designation';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
                     controller: _cityController,
                     labelText: 'City',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your city';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
                     controller: _addressController,
                     labelText: 'Address',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your address';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                   ),
                   const SizedBox(height: 16.0),
                   CustomDropdownFormField(
                     labelText: 'Graduation Year',
                     value: _selectedYear,
                     items: _generateYears(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select your graduation year';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                     onChanged: (value) {
                       setState(() {
                         _selectedYear = value;
@@ -586,12 +582,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                       'Electrical Engineering',
                       'Mechanical Engineering',
                     ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select your course';
-                      }
-                      return null;
-                    },
+                    validator: _requiredValidator,
                     onChanged: (value) {
                       setState(() {
                         _selectedCourse = value;
@@ -629,6 +620,46 @@ class EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  String? _requiredValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'This field is required';
+    }
+    return null;
+  }
+
+  String? _emailValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your email';
+    }
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Please enter a valid email';
+    }
+    return null;
+  }
+
+  String? _phoneValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your phone number';
+    }
+    final phoneRegex = RegExp(r'^\+?\d{10,15}$');
+    if (!phoneRegex.hasMatch(value)) {
+      return 'Please enter a valid phone number';
+    }
+    return null;
+  }
+
+  String? _dateValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your date of birth';
+    }
+    final dateRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
+    if (!dateRegex.hasMatch(value)) {
+      return 'Please enter a valid date (dd/MM/yyyy)';
+    }
+    return null;
   }
 }
 
