@@ -1,6 +1,7 @@
-import 'package:alumniconnect/screens/edit_profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:alumniconnect/screens/edit_profile_screen.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -126,117 +127,56 @@ class ProfilePage extends StatelessWidget {
           context, 'SignInScreen', (route) => false);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error signing out. Please try again.'),
+        SnackBar(
+          content: Text('Error signing out. Please try again. $e'),
         ),
       );
     }
   }
 }
 
-class ProfileImageWithLoading extends StatefulWidget {
+class ProfileImageWithLoading extends StatelessWidget {
   final String? userImageUrl;
   final String? blurHash;
 
   const ProfileImageWithLoading({super.key, this.userImageUrl, this.blurHash});
 
   @override
-  ProfileImageWithLoadingState createState() => ProfileImageWithLoadingState();
-}
-
-class ProfileImageWithLoadingState extends State<ProfileImageWithLoading> {
-  bool _isLoading = true;
-
-  @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        CircleAvatar(
-          key: UniqueKey(),
-          radius: 60,
-          backgroundColor: Colors.grey[300],
-          child: ClipOval(
-            child: widget.userImageUrl != null
-                ? Stack(
-              children: [
-                BlurHash(
-                  hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                  imageFit: BoxFit.cover,
-                  decodingWidth: 120,
-                  decodingHeight: 120,
-                ),
-                Image.network(
-                  '${widget.userImageUrl}?${DateTime.now().millisecondsSinceEpoch}',
-                  fit: BoxFit.cover,
-                  width: 120,
-                  height: 120,
-                  errorBuilder: (context, error, stackTrace) {
-                    return BlurHash(
-                      hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) {
-                      return child;
-                    } else {
-                      return BlurHash(
-                        hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                      );
-                    }
-                  },
-                ),
-              ],
-            )
-                : const Icon(
-              Icons.person,
-              size: 60,
-              color: Colors.white,
+    return CircleAvatar(
+      radius: 60,
+      backgroundColor: Colors.grey[300],
+      child: ClipOval(
+        child: userImageUrl != null
+            ? Stack(
+          children: [
+            BlurHash(
+              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              imageFit: BoxFit.cover,
+              decodingWidth: 120,
+              decodingHeight: 120,
             ),
-          ),
+            CachedNetworkImage(
+              imageUrl: '${userImageUrl}?${DateTime.now().millisecondsSinceEpoch}',
+              fit: BoxFit.cover,
+              width: 120,
+              height: 120,
+              placeholder: (context, url) => BlurHash(
+                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              ),
+              errorWidget: (context, url, error) => BlurHash(
+                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              ),
+            ),
+          ],
+        )
+            : const Icon(
+          Icons.person,
+          size: 60,
+          color: Colors.white,
         ),
-        if (_isLoading && widget.userImageUrl != null)
-          const CircularProgressIndicator(),
-      ],
+      ),
     );
-  }
-
-  @override
-  void didUpdateWidget(covariant ProfileImageWithLoading oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.userImageUrl != oldWidget.userImageUrl) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.userImageUrl != null) {
-      final image = NetworkImage(widget.userImageUrl!);
-      image.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener(
-              (_, __) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-          onError: (_, __) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-        ),
-      );
-    } else {
-      _isLoading = false;
-    }
   }
 }
 

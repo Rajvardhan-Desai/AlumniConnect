@@ -1,11 +1,12 @@
-import 'package:alumniconnect/screens/profile_page.dart';
-import 'package:alumniconnect/screens/search_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
+import 'package:alumniconnect/screens/profile_page.dart';
+import 'package:alumniconnect/screens/search_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -320,47 +321,34 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String? imageUrlWithTimestamp = imageUrl != null ? '$imageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
+
     return CircleAvatar(
-      key: UniqueKey(),
+      key: ValueKey(imageUrlWithTimestamp), // Use a unique key to force rebuild
       radius: 30,
       backgroundColor: Colors.grey.shade300,
       child: ClipOval(
         child: imageUrl != null
             ? Stack(
           children: [
-            if (blurHash != null)
-              BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                imageFit: BoxFit.cover,
-                decodingWidth: 60,
-                decodingHeight: 60,
-              ),
-            Image.network(
-              '$imageUrl?${DateTime.now().millisecondsSinceEpoch}',
+            BlurHash(
+              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              imageFit: BoxFit.cover,
+              decodingWidth: 60,
+              decodingHeight: 60,
+            ),
+            CachedNetworkImage(
+              key: ValueKey(imageUrlWithTimestamp), // Ensure cache-busting by using a unique key
+              imageUrl: imageUrlWithTimestamp!,
               fit: BoxFit.cover,
               width: 60,
               height: 60,
-              errorBuilder: (context, error, stackTrace) {
-                return blurHash != null
-                    ? BlurHash(
-                  hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                )
-                    : const Icon(
-                  Icons.person,
-                  color: Colors.grey,
-                );
-              },
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) {
-                  return child;
-                } else {
-                  return blurHash != null
-                      ? BlurHash(
-                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                  )
-                      : const CircularProgressIndicator();
-                }
-              },
+              placeholder: (context, url) => BlurHash(
+                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              ),
+              errorWidget: (context, url, error) => BlurHash(
+                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+              ),
             ),
           ],
         )
@@ -377,8 +365,7 @@ class UserAvatar extends StatelessWidget {
 class UpcomingBirthdaysSection extends StatelessWidget {
   final List<Map<String, dynamic>> upcomingBirthdays;
 
-  const UpcomingBirthdaysSection({Key? key, required this.upcomingBirthdays})
-      : super(key: key);
+  const UpcomingBirthdaysSection({super.key, required this.upcomingBirthdays});
 
   @override
   Widget build(BuildContext context) {

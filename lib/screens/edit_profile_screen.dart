@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:alumniconnect/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -11,6 +12,7 @@ import 'package:blurhash_dart/blurhash_dart.dart' as blurhash_dart;
 import 'package:image/image.dart' as img;
 import 'package:alumniconnect/util.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -260,12 +262,22 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    DateTime now = DateTime.now();
+    DateTime eighteenYearsAgo = DateTime(now.year - 18, now.month, now.day);
+
+    DateTime initialDate = DateTime.now();
+    if (_dobController.text.isNotEmpty) {
+      initialDate = DateFormat('dd/MM/yyyy').parse(_dobController.text);
+    }
+
     DateTime? selectedDate = await showDatePicker(
+      fieldLabelText: "Enter Date (DD/MM/YYYY)",
       context: context,
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
+      firstDate: DateTime(1924),
+      lastDate: eighteenYearsAgo,
       initialEntryMode: DatePickerEntryMode.input,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
+      locale: const Locale('en', 'GB'), // Set locale to 'en_GB' for dd/MM/yyyy format
     );
 
     if (selectedDate != null) {
@@ -276,6 +288,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       });
     }
   }
+
 
   Future<void> _updateProfile() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -291,9 +304,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           String? imageUrl = _existingImageUrl;
           String? blurHash = _blurHash;
           if (_image != null) {
+            // Clear old cached image before uploading new one
+            if (_existingImageUrl != null) {
+              await CachedNetworkImage.evictFromCache(_existingImageUrl!);
+            }
+
             imageUrl = await _uploadImage(user.uid);
-            blurHash = await _generateBlurHash(_image!);
             imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
+            blurHash = await _generateBlurHash(_image!);
           }
 
           // Update user email in Firebase Authentication
@@ -304,8 +322,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           await _updateUserProfile(user.uid, imageUrl, blurHash);
 
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "Profile updated successfully!",
-                Colors.green);
+            showSnackBar(scaffoldMessenger, "Profile updated successfully!", Colors.green);
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -314,14 +331,12 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           }
         } else {
           if (mounted) {
-            showSnackBar(
-                scaffoldMessenger, "User not authenticated.", Colors.red);
+            showSnackBar(scaffoldMessenger, "User not authenticated.", Colors.red);
           }
         }
       } catch (e) {
         if (mounted) {
-          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
-              Colors.red);
+          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
         }
       } finally {
         if (mounted) {
@@ -332,6 +347,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
+
 
   Future<String?> _uploadImage(String uid) async {
     final storageRef = FirebaseStorage.instance
@@ -478,7 +494,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                     blurHash: _blurHash,
                     pickImage: _pickImage,
                     removeImage: _removeImage,
-                    showImageSourceActionSheet: _showImageSourceActionSheet,
+                    showImageSourceActionSheet:
+                    _showImageSourceActionSheet,
                   ),
                   const SizedBox(height: 20.0),
                   CustomTextFormField(
@@ -666,14 +683,12 @@ class ProfileImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Add a cache-busting parameter to the URL
     String? imageUrl = existingImageUrl != null ? '$existingImageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
 
     return Stack(
       children: [
         Container(
-          margin:
-          const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
+          margin: const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
           child: CircleAvatar(
             key: ValueKey(imageUrl), // Use a unique key to force rebuild
             radius: 60,
@@ -695,25 +710,18 @@ class ProfileImage extends StatelessWidget {
                     decodingWidth: 120,
                     decodingHeight: 120,
                   ),
-                  Image.network(
-                    imageUrl,
+                  CachedNetworkImage(
+                    key: ValueKey(imageUrl), // Ensure cache-busting by using a unique key
+                    imageUrl: imageUrl,
                     fit: BoxFit.cover,
                     width: 120,
                     height: 120,
-                    errorBuilder: (context, error, stackTrace) {
-                      return BlurHash(
-                        hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      } else {
-                        return BlurHash(
-                          hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                        );
-                      }
-                    },
+                    placeholder: (context, url) => BlurHash(
+                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                    ),
+                    errorWidget: (context, url, error) => BlurHash(
+                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                    ),
                   ),
                 ],
               )
@@ -744,6 +752,7 @@ class ProfileImage extends StatelessWidget {
     );
   }
 }
+
 
 class CustomTextFormField extends StatelessWidget {
   final TextEditingController controller;

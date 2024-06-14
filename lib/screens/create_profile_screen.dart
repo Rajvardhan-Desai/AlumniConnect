@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:alumniconnect/screens/home_screen.dart';
 import 'package:alumniconnect/util.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -69,12 +67,17 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    DateTime now = DateTime.now();
+    DateTime eighteenYearsAgo = DateTime(now.year - 18, now.month, now.day);
+
     DateTime? selectedDate = await showDatePicker(
+      fieldLabelText: "Enter Date (DD/MM/YYYY)",
       context: context,
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
+      firstDate: DateTime(1924),
+      lastDate: eighteenYearsAgo,
       initialEntryMode: DatePickerEntryMode.input,
-      initialDate: DateTime.now(),
+      initialDate: eighteenYearsAgo,
+      locale: const Locale('en', 'GB'),
     );
 
     if (selectedDate != null) {
@@ -102,13 +105,11 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
             final storageRef = FirebaseStorage.instance.ref().child('profile_images').child('${user.uid}.${_image!.path.split('.').last}');
             await storageRef.putFile(_image!);
             imageUrl = await storageRef.getDownloadURL();
-
             // Generate BlurHash
             final imageBytes = await _image!.readAsBytes();
             final decodedImage = img.decodeImage(imageBytes);
             final Uint8List uint8List = Uint8List.fromList(imageBytes);
             blurHash = BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
-
             imageUrl = imageUrl.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
           }
 
