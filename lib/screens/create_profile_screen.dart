@@ -108,7 +108,7 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
             // Generate BlurHash
             final imageBytes = await _image!.readAsBytes();
             final decodedImage = img.decodeImage(imageBytes);
-            final Uint8List uint8List = Uint8List.fromList(imageBytes);
+            // final Uint8List uint8List = Uint8List.fromList(imageBytes);
             blurHash = BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
             imageUrl = imageUrl.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
           }

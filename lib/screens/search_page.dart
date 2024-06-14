@@ -10,16 +10,16 @@ class SearchPage extends StatefulWidget {
   final String currentYear;
 
   const SearchPage({
-    Key? key,
+    super.key,
     required this.currentCourse,
     required this.currentYear,
-  }) : super(key: key);
+  });
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  SearchPageState createState() => SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final User? _currentUser = FirebaseAuth.instance.currentUser;
@@ -32,7 +32,7 @@ class _SearchPageState extends State<SearchPage> {
   bool _hasSearched = false;
   bool _isLoading = false;
   bool _hasMore = true;
-  int _pageSize = 10;
+  final int _pageSize = 10;
   String? _lastKey;
 
   final List<String> _courses = [
@@ -553,7 +553,7 @@ class CustomDropdown extends StatelessWidget {
   final ValueChanged<String?>? onChanged;
   final bool isExpanded;
 
-  const CustomDropdown({
+  const CustomDropdown({super.key,
     required this.label,
     required this.value,
     required this.items,
@@ -591,7 +591,7 @@ class AlumniListTile extends StatelessWidget {
   final Map<dynamic, dynamic> result;
   final Function(Map<dynamic, dynamic>) navigateToProfile;
 
-  const AlumniListTile({
+  const AlumniListTile({super.key,
     required this.result,
     required this.navigateToProfile,
   });

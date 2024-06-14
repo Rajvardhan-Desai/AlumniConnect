@@ -10,15 +10,14 @@ class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  _SignUpScreenState createState() => _SignUpScreenState();
+  SignUpScreenState createState() => SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class SignUpScreenState extends State<SignUpScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -30,15 +29,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       });
       try {
         final FirebaseAuth auth = FirebaseAuth.instance;
-        final UserCredential userCredential =
-            await auth.createUserWithEmailAndPassword(
+        await auth.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
+        if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const CreateProfileScreen()),
-          (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
         );
       } on FirebaseAuthException catch (e) {
         String errorMessage;
@@ -59,9 +59,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         showSnackBar(scaffoldMessenger, errorMessage, Colors.red);
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -142,24 +144,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             _isLoading
                                 ? const CircularProgressIndicator()
                                 : ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.deepPurple,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10.0),
-                                      ),
-                                      minimumSize:
-                                          const Size(double.infinity, 50),
-                                    ),
-                                    onPressed: _signUp,
-                                    child: const Text(
-                                      'Sign Up',
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                  BorderRadius.circular(10.0),
+                                ),
+                                minimumSize:
+                                const Size(double.infinity, 50),
+                              ),
+                              onPressed: _signUp,
+                              child: const Text(
+                                'Sign Up',
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                             const SizedBox(height: 20.0),
                           ],
                         ),

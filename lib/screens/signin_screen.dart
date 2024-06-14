@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'home_screen.dart';
 import 'signup_screen.dart';
-import 'package:alumniconnect/util.dart'; // Import the custom snackbar file
+import 'package:alumniconnect/util.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -40,21 +39,27 @@ class SignInScreenState extends State<SignInScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (Route<dynamic> route) => false,
-        );
+        _navigateToHome();
       } on FirebaseAuthException catch (e) {
         _showErrorSnackBar(e.code);
-        print(e.code);
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
+
+  void _navigateToHome() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (Route<dynamic> route) => false,
+    );
+  }
+
 
   Future<void> _resetPassword() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);

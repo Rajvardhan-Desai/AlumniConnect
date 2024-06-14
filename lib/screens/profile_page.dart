@@ -110,7 +110,9 @@ class ProfilePage extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _signOut(context);
+                if (context.mounted) {
+                  _signOut(context);
+                }
               },
               child: const Text('Sign Out'),
             ),
@@ -120,19 +122,24 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+
   void _signOut(BuildContext context) async {
     try {
       await _auth.signOut();
-      Navigator.pushNamedAndRemoveUntil(
-          context, 'SignInScreen', (route) => false);
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, 'SignInScreen', (route) => false);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error signing out. Please try again. $e'),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out. Please try again. $e'),
+          ),
+        );
+      }
     }
   }
+
 }
 
 class ProfileImageWithLoading extends StatelessWidget {
@@ -157,7 +164,7 @@ class ProfileImageWithLoading extends StatelessWidget {
               decodingHeight: 120,
             ),
             CachedNetworkImage(
-              imageUrl: '${userImageUrl}?${DateTime.now().millisecondsSinceEpoch}',
+              imageUrl: '$userImageUrl?${DateTime.now().millisecondsSinceEpoch}',
               fit: BoxFit.cover,
               width: 120,
               height: 120,
@@ -167,6 +174,7 @@ class ProfileImageWithLoading extends StatelessWidget {
               errorWidget: (context, url, error) => BlurHash(
                 hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
               ),
+              cacheKey: DateTime.now().millisecondsSinceEpoch.toString(), // Ensure no caching
             ),
           ],
         )

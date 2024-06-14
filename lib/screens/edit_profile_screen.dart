@@ -12,7 +12,7 @@ import 'package:blurhash_dart/blurhash_dart.dart' as blurhash_dart;
 import 'package:image/image.dart' as img;
 import 'package:alumniconnect/util.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});

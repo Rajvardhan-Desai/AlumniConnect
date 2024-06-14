@@ -12,10 +12,10 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
@@ -242,14 +242,14 @@ class UserInfoCard extends StatelessWidget {
   final String? blurHash;
 
   const UserInfoCard({
-    Key? key,
+    super.key,
     required this.userName,
     required this.userEmail,
     required this.userCourse,
     required this.userYear,
     this.imageUrl,
     this.blurHash,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -314,10 +314,10 @@ class UserAvatar extends StatelessWidget {
   final String? blurHash;
 
   const UserAvatar({
-    Key? key,
+    super.key,
     this.imageUrl,
     this.blurHash,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -397,12 +397,12 @@ class BirthdayCard extends StatelessWidget {
   final String? blurHash;
 
   const BirthdayCard({
-    Key? key,
+    super.key,
     required this.name,
     required this.birthday,
     this.imageUrl,
     this.blurHash,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
