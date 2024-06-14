@@ -72,10 +72,9 @@ class SignInScreenState extends State<SignInScreen> {
       await FirebaseAuth.instance.sendPasswordResetEmail(
         email: _emailController.text.trim(),
       );
-      showSnackBar(scaffoldMessenger, 'Password reset email sent.', Colors.green);
+      showSnackBar(scaffoldMessenger, 'Check your email for a password reset link if the account exists.', Colors.green);
     } on FirebaseAuthException catch (e) {
       _showErrorSnackBar(e.code);
-
     }
   }
 
