@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'view_profile_page.dart';
 
 class SearchPage extends StatefulWidget {
@@ -9,10 +10,10 @@ class SearchPage extends StatefulWidget {
   final String currentYear;
 
   const SearchPage({
-    super.key,
+    Key? key,
     required this.currentCourse,
     required this.currentYear,
-  });
+  }) : super(key: key);
 
   @override
   _SearchPageState createState() => _SearchPageState();
@@ -68,16 +69,20 @@ class _SearchPageState extends State<SearchPage> {
       final cities = await _fetchUniqueFilterOptions('city');
       final designations = await _fetchUniqueFilterOptions('designation');
 
-      setState(() {
-        _cities = cities.toList();
-        _designations = designations.toList();
-      });
+      if (mounted) {
+        setState(() {
+          _cities = cities.toList();
+          _designations = designations.toList();
+        });
+      }
     } catch (error) {
       _showErrorDialog('Error fetching filter options. Please try again later.');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -109,16 +114,20 @@ class _SearchPageState extends State<SearchPage> {
 
       final results = _processSnapshot(snapshot);
 
-      setState(() {
-        _suggestedResults = results;
-        _hasMore = snapshot.children.length == _pageSize;
-      });
+      if (mounted) {
+        setState(() {
+          _suggestedResults = results;
+          _hasMore = snapshot.children.length == _pageSize;
+        });
+      }
     } catch (error) {
       _showErrorDialog('Error fetching suggested alumni. Please try again later.');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -166,15 +175,19 @@ class _SearchPageState extends State<SearchPage> {
 
       final results = _filterResults(snapshot);
 
-      setState(() {
-        _searchResults = results;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+        });
+      }
     } catch (error) {
       _showErrorDialog('Error searching alumni. Please try again later.');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -214,16 +227,20 @@ class _SearchPageState extends State<SearchPage> {
 
       final results = _processSnapshot(snapshot);
 
-      setState(() {
-        _suggestedResults.addAll(results);
-        _hasMore = snapshot.children.length == _pageSize;
-      });
+      if (mounted) {
+        setState(() {
+          _suggestedResults.addAll(results);
+          _hasMore = snapshot.children.length == _pageSize;
+        });
+      }
     } catch (error) {
       _showErrorDialog('Error fetching more suggested alumni. Please try again later.');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -321,8 +338,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                   ElevatedButton(
                     onPressed: _clearSearch,
-                    style: ElevatedButton.styleFrom(
-                    ),
+                    style: ElevatedButton.styleFrom(),
                     child: const Text('Clear'),
                   ),
                 ],
@@ -383,7 +399,9 @@ class _SearchPageState extends State<SearchPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ViewProfilePage(userProfile: userProfile),
+        builder: (context) => ViewProfilePage(
+          userProfile: Map<String, dynamic>.from(userProfile),
+        ),
       ),
     );
   }
@@ -411,153 +429,14 @@ class _SearchPageState extends State<SearchPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Search by name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_searchController.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _clearSearch();
-                        },
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: () => _searchAlumni(_searchController.text.trim()),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildSearchBar(),
             const SizedBox(height: 16.0),
             Expanded(
               child: _isLoading
                   ? _buildShimmerPlaceholder()
                   : _hasSearched
-                  ? _searchResults.isEmpty
-                  ? const Center(child: Text('No results found'))
-                  : ListView.builder(
-                itemCount: _searchResults.length,
-                itemBuilder: (context, index) {
-                  final result = _searchResults[index];
-                  final String uid = result['uid'] ?? 'unknown-$index';
-                  return ListTile(
-                    leading: Hero(
-                      tag: 'profileImage-$uid',
-                      child: CircleAvatar(
-                        backgroundImage: result['imageUrl'] != null
-                            ? NetworkImage(result['imageUrl'])
-                            : null,
-                        child: result['imageUrl'] == null
-                            ? const Icon(Icons.person)
-                            : null,
-                      ),
-                    ),
-                    title: Hero(
-                      tag: 'profileName-$uid',
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Text(
-                          result['name'] ?? 'No Name',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    subtitle: Hero(
-                      tag: 'profileEmail-$uid',
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Text(result['email'] ?? 'No Email'),
-                      ),
-                    ),
-                    onTap: () => _navigateToProfile(result),
-                  );
-                },
-              )
-                  : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Suggested',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _showTooltip(context),
-                        child: Tooltip(
-                          key: _tooltipKey,
-                          message:
-                          'Suggested based on your course (${widget.currentCourse}) and graduation year (${widget.currentYear}).',
-                          child: const Icon(Icons.info_outline, size: 18),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: _suggestedResults.isEmpty
-                        ? const Center(child: Text('No suggestions available'))
-                        : ListView.builder(
-                      itemCount: _suggestedResults.length,
-                      itemBuilder: (context, index) {
-                        final result = _suggestedResults[index];
-                        final String uid = result['uid'] ?? 'unknown-$index';
-                        return ListTile(
-                          leading: Hero(
-                            tag: 'profileImage-$uid',
-                            child: CircleAvatar(
-                              backgroundImage: result['imageUrl'] != null
-                                  ? NetworkImage(result['imageUrl'])
-                                  : null,
-                              child: result['imageUrl'] == null
-                                  ? const Icon(Icons.person)
-                                  : null,
-                            ),
-                          ),
-                          title: Hero(
-                            tag: 'profileName-$uid',
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Text(
-                                result['name'] ?? 'No Name',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                          subtitle: Hero(
-                            tag: 'profileEmail-$uid',
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Text(result['email'] ?? 'No Email'),
-                            ),
-                          ),
-                          onTap: () => _navigateToProfile(result),
-                        );
-                      },
-                    ),
-                  ),
-                  if (_hasMore)
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _fetchMoreSuggestedAlumni,
-                        child: const Text('Load More'),
-                      ),
-                    ),
-                ],
-              ),
+                  ? _buildSearchResults()
+                  : _buildSuggestedResults(),
             ),
           ],
         ),
@@ -565,8 +444,104 @@ class _SearchPageState extends State<SearchPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showFilterSheet(context),
         tooltip: 'Filters',
-        child: const Icon(Icons.filter_alt,color:  Color(0xff986ae7)),
+        child: const Icon(Icons.filter_alt, color: Color(0xff986ae7)),
       ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        labelText: 'Search by name',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  _clearSearch();
+                },
+              ),
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _searchAlumni(_searchController.text.trim()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_searchResults.isEmpty) {
+      return const Center(child: Text('No results found'));
+    }
+    return ListView.builder(
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final result = _searchResults[index];
+        return AlumniListTile(
+          result: result,
+          navigateToProfile: _navigateToProfile,
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestedResults() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Suggested',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _showTooltip(context),
+              child: Tooltip(
+                key: _tooltipKey,
+                message:
+                'Suggested based on your course (${widget.currentCourse}) and graduation year (${widget.currentYear}).',
+                child: const Icon(Icons.info_outline, size: 18),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: _suggestedResults.isEmpty
+              ? const Center(child: Text('No suggestions available'))
+              : ListView.builder(
+            itemCount: _suggestedResults.length,
+            itemBuilder: (context, index) {
+              final result = _suggestedResults[index];
+              return AlumniListTile(
+                result: result,
+                navigateToProfile: _navigateToProfile,
+              );
+            },
+          ),
+        ),
+        if (_hasMore)
+          Center(
+            child: ElevatedButton(
+              onPressed: _fetchMoreSuggestedAlumni,
+              child: const Text('Load More'),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -608,6 +583,85 @@ class CustomDropdown extends StatelessWidget {
         );
       }).toList(),
       onChanged: onChanged,
+    );
+  }
+}
+
+class AlumniListTile extends StatelessWidget {
+  final Map<dynamic, dynamic> result;
+  final Function(Map<dynamic, dynamic>) navigateToProfile;
+
+  const AlumniListTile({
+    required this.result,
+    required this.navigateToProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String uid = result['uid'] ?? 'unknown';
+    final String? blurHash = result['blurHash'];
+
+    return ListTile(
+      leading: Hero(
+        tag: 'profileImage-$uid',
+        child: CircleAvatar(
+          key: UniqueKey(),
+          radius: 25,
+          backgroundColor: Colors.grey.shade300,
+          child: ClipOval(
+            child: result['imageUrl'] != null
+                ? Stack(
+              children: [
+                BlurHash(
+                  hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                  imageFit: BoxFit.cover,
+                  decodingWidth: 60,
+                  decodingHeight: 60,
+                ),
+                Image.network(
+                  '${result['imageUrl']}?${DateTime.now().millisecondsSinceEpoch}',
+                  fit: BoxFit.cover,
+                  width: 60,
+                  height: 60,
+                  errorBuilder: (context, error, stackTrace) {
+                    return BlurHash(
+                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child;
+                    } else {
+                      return BlurHash(
+                        hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                      );
+                    }
+                  },
+                ),
+              ],
+            )
+                : const Icon(Icons.person, size: 30, color: Colors.white),
+          ),
+        ),
+      ),
+      title: Hero(
+        tag: 'profileName-$uid',
+        child: Material(
+          color: Colors.transparent,
+          child: Text(
+            result['name'] ?? 'No Name',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+      subtitle: Hero(
+        tag: 'profileEmail-$uid',
+        child: Material(
+          color: Colors.transparent,
+          child: Text(result['email'] ?? 'No Email'),
+        ),
+      ),
+      onTap: () => navigateToProfile(result),
     );
   }
 }

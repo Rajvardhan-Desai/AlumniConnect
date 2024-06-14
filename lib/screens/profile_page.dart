@@ -1,11 +1,13 @@
 import 'package:alumniconnect/screens/edit_profile_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userName;
   final String userEmail;
   final String? userImageUrl;
+  final String? blurHash;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   ProfilePage({
@@ -13,6 +15,7 @@ class ProfilePage extends StatelessWidget {
     required this.userName,
     required this.userEmail,
     this.userImageUrl,
+    this.blurHash,
   });
 
   @override
@@ -22,7 +25,10 @@ class ProfilePage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ProfileImageWithLoading(userImageUrl: userImageUrl),
+            ProfileImageWithLoading(
+              userImageUrl: userImageUrl,
+              blurHash: blurHash,
+            ),
             const SizedBox(height: 10),
             Text(
               userName,
@@ -130,14 +136,15 @@ class ProfilePage extends StatelessWidget {
 
 class ProfileImageWithLoading extends StatefulWidget {
   final String? userImageUrl;
+  final String? blurHash;
 
-  const ProfileImageWithLoading({Key? key, this.userImageUrl}) : super(key: key);
+  const ProfileImageWithLoading({super.key, this.userImageUrl, this.blurHash});
 
   @override
-  _ProfileImageWithLoadingState createState() => _ProfileImageWithLoadingState();
+  ProfileImageWithLoadingState createState() => ProfileImageWithLoadingState();
 }
 
-class _ProfileImageWithLoadingState extends State<ProfileImageWithLoading> {
+class ProfileImageWithLoadingState extends State<ProfileImageWithLoading> {
   bool _isLoading = true;
 
   @override
@@ -146,23 +153,47 @@ class _ProfileImageWithLoadingState extends State<ProfileImageWithLoading> {
       alignment: Alignment.center,
       children: [
         CircleAvatar(
+          key: UniqueKey(),
           radius: 60,
           backgroundColor: Colors.grey[300],
-          backgroundImage: widget.userImageUrl != null
-              ? NetworkImage(widget.userImageUrl!)
-              : null,
-          child: widget.userImageUrl == null
-              ? const Icon(
-            Icons.person,
-            size: 60,
-            color: Colors.white,
-          )
-              : null,
-          onBackgroundImageError: (_, __) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
+          child: ClipOval(
+            child: widget.userImageUrl != null
+                ? Stack(
+              children: [
+                BlurHash(
+                  hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                  imageFit: BoxFit.cover,
+                  decodingWidth: 120,
+                  decodingHeight: 120,
+                ),
+                Image.network(
+                  '${widget.userImageUrl}?${DateTime.now().millisecondsSinceEpoch}',
+                  fit: BoxFit.cover,
+                  width: 120,
+                  height: 120,
+                  errorBuilder: (context, error, stackTrace) {
+                    return BlurHash(
+                      hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child;
+                    } else {
+                      return BlurHash(
+                        hash: widget.blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                      );
+                    }
+                  },
+                ),
+              ],
+            )
+                : const Icon(
+              Icons.person,
+              size: 60,
+              color: Colors.white,
+            ),
+          ),
         ),
         if (_isLoading && widget.userImageUrl != null)
           const CircularProgressIndicator(),

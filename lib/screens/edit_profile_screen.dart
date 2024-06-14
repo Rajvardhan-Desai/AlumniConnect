@@ -7,8 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:blurhash_dart/blurhash_dart.dart' as blurhash_dart;
+import 'package:image/image.dart' as img;
 import 'package:alumniconnect/util.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -30,9 +32,11 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   File? _image;
   bool _isLoading = false;
   bool _isChanged = false;
+  bool _isButtonLoading = false;
   String? _selectedYear;
   String? _selectedCourse;
   String? _existingImageUrl;
+  String? _blurHash;
 
   late Map<String, dynamic> _initialValues;
   bool _initialValuesSet = false;
@@ -126,6 +130,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     _selectedYear = data['year'] ?? '';
     _selectedCourse = data['course'] ?? '';
     _existingImageUrl = data['imageUrl'];
+    _blurHash = data['blurHash'];
     _addListeners(); // Add listeners after populating the data
   }
 
@@ -142,6 +147,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       'year': data['year'],
       'course': data['course'],
       'imageUrl': data['imageUrl'],
+      'blurHash': data['blurHash'],
     };
     _initialValuesSet = true; // Set flag after initializing values
   }
@@ -275,7 +281,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     if (_formKey.currentState!.validate() && _isChanged) {
       setState(() {
-        _isLoading = true;
+        _isButtonLoading = true;
       });
       try {
         final FirebaseAuth auth = FirebaseAuth.instance;
@@ -283,8 +289,10 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
         if (user != null) {
           String? imageUrl = _existingImageUrl;
+          String? blurHash = _blurHash;
           if (_image != null) {
             imageUrl = await _uploadImage(user.uid);
+            blurHash = await _generateBlurHash(_image!);
             imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
           }
 
@@ -293,7 +301,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
             await user.verifyBeforeUpdateEmail(_emailController.text.trim());
           }
 
-          await _updateUserProfile(user.uid, imageUrl);
+          await _updateUserProfile(user.uid, imageUrl, blurHash);
 
           if (mounted) {
             showSnackBar(scaffoldMessenger, "Profile updated successfully!",
@@ -318,7 +326,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       } finally {
         if (mounted) {
           setState(() {
-            _isLoading = false;
+            _isButtonLoading = false;
           });
         }
       }
@@ -334,7 +342,13 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     return await storageRef.getDownloadURL();
   }
 
-  Future<void> _updateUserProfile(String uid, String? imageUrl) async {
+  Future<String> _generateBlurHash(File image) async {
+    final imageBytes = await image.readAsBytes();
+    final decodedImage = img.decodeImage(imageBytes);
+    return blurhash_dart.BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
+  }
+
+  Future<void> _updateUserProfile(String uid, String? imageUrl, String? blurHash) async {
     DatabaseReference dbRef = FirebaseDatabase.instance.ref('alumni/$uid');
     await dbRef.update({
       'name': _nameController.text.trim(),
@@ -348,6 +362,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       'year': _selectedYear,
       'course': _selectedCourse,
       'imageUrl': imageUrl,
+      'blurHash': blurHash,
     });
   }
 
@@ -437,36 +452,6 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(8.0),
-            child: const CircleAvatar(radius: 60, backgroundColor: Colors.white),
-          ),
-          const SizedBox(height: 20.0),
-          for (int i = 0; i < 9; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Container(
-                height: 37.0,
-                width: double.infinity,
-                color: Colors.white,
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                  color: Colors.white,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -478,10 +463,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
             color: Colors.white), // Set the back arrow color to white
       ),
       body: _isLoading
-          ? Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _buildShimmer(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -493,6 +475,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                   ProfileImage(
                     image: _image,
                     existingImageUrl: _existingImageUrl,
+                    blurHash: _blurHash,
                     pickImage: _pickImage,
                     removeImage: _removeImage,
                     showImageSourceActionSheet: _showImageSourceActionSheet,
@@ -591,10 +574,10 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 30.0),
-                  _isLoading
+                  _isButtonLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
-                    onPressed: _isLoading || !_isChanged
+                    onPressed: _isButtonLoading || !_isChanged
                         ? null
                         : () => _updateProfile(),
                     style: ElevatedButton.styleFrom(
@@ -666,6 +649,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 class ProfileImage extends StatelessWidget {
   final File? image;
   final String? existingImageUrl;
+  final String? blurHash;
   final Function(ImageSource) pickImage;
   final VoidCallback removeImage;
   final VoidCallback showImageSourceActionSheet;
@@ -674,6 +658,7 @@ class ProfileImage extends StatelessWidget {
     super.key,
     required this.image,
     required this.existingImageUrl,
+    required this.blurHash,
     required this.pickImage,
     required this.removeImage,
     required this.showImageSourceActionSheet,
@@ -681,25 +666,63 @@ class ProfileImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Add a cache-busting parameter to the URL
+    String? imageUrl = existingImageUrl != null ? '$existingImageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
+
     return Stack(
       children: [
         Container(
           margin:
           const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
           child: CircleAvatar(
+            key: ValueKey(imageUrl), // Use a unique key to force rebuild
             radius: 60,
-            backgroundImage: image != null
-                ? FileImage(image!)
-                : existingImageUrl != null
-                ? NetworkImage(existingImageUrl!) as ImageProvider
-                : null,
-            child: image == null && existingImageUrl == null
-                ? const Icon(
-              Icons.person,
-              size: 60,
-              color: Colors.grey,
-            )
-                : null,
+            backgroundColor: Colors.grey.shade300,
+            child: ClipOval(
+              child: image != null
+                  ? Image.file(
+                image!,
+                fit: BoxFit.cover,
+                width: 120,
+                height: 120,
+              )
+                  : (imageUrl != null
+                  ? Stack(
+                children: [
+                  BlurHash(
+                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                    imageFit: BoxFit.cover,
+                    decodingWidth: 120,
+                    decodingHeight: 120,
+                  ),
+                  Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    width: 120,
+                    height: 120,
+                    errorBuilder: (context, error, stackTrace) {
+                      return BlurHash(
+                        hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child;
+                      } else {
+                        return BlurHash(
+                          hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                        );
+                      }
+                    },
+                  ),
+                ],
+              )
+                  : const Icon(
+                Icons.person,
+                size: 60,
+                color: Colors.grey,
+              )),
+            ),
           ),
         ),
         Positioned(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:alumniconnect/screens/home_screen.dart';
 import 'package:alumniconnect/util.dart';
@@ -9,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:blurhash_dart/blurhash_dart.dart';
+import 'package:image/image.dart' as img;
 
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
@@ -94,10 +97,18 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
 
         if (user != null) {
           String? imageUrl;
+          String? blurHash;
           if (_image != null) {
             final storageRef = FirebaseStorage.instance.ref().child('profile_images').child('${user.uid}.${_image!.path.split('.').last}');
             await storageRef.putFile(_image!);
             imageUrl = await storageRef.getDownloadURL();
+
+            // Generate BlurHash
+            final imageBytes = await _image!.readAsBytes();
+            final decodedImage = img.decodeImage(imageBytes);
+            final Uint8List uint8List = Uint8List.fromList(imageBytes);
+            blurHash = BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
+
             imageUrl = imageUrl.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
           }
 
@@ -114,6 +125,7 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
             'year': _selectedYear,
             'course': _selectedCourse,
             'imageUrl': imageUrl,
+            'blurHash': blurHash,
           });
 
           showSnackBar(scaffoldMessenger, "Profile created successfully!", Colors.green);

@@ -5,7 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,8 +24,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _currentUserCourse = '';
   String _currentUserYear = '';
   String? _currentUserImageUrl;
+  String? _currentUserBlurHash;
   int _selectedIndex = 0;
-  bool _isLoading = false;
+  bool _isLoadingUserData = false;
+  bool _isLoadingBirthdays = false;
 
   List<Map<String, dynamic>> _upcomingBirthdays = [];
 
@@ -47,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchUserData(String userId) async {
     setState(() {
-      _isLoading = true;
+      _isLoadingUserData = true;
     });
     try {
       final snapshot = await _database.child('alumni').child(userId).get();
@@ -57,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _currentUserName = userData['name'] ?? 'User';
           _currentUserEmail = userData['email'] ?? 'No email';
           _currentUserImageUrl = userData['imageUrl'];
+          _currentUserBlurHash = userData['blurHash'];
           _currentUserCourse = userData['course'] ?? 'Unknown course';
           _currentUserYear = userData['year'] ?? 'Unknown year';
         });
@@ -67,19 +70,20 @@ class _HomeScreenState extends State<HomeScreen> {
       _showErrorSnackbar('Error fetching user data: ${error.toString()}');
     } finally {
       setState(() {
-        _isLoading = false;
+        _isLoadingUserData = false;
       });
     }
   }
 
   Future<void> _fetchUpcomingBirthdays() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingBirthdays = true;
     });
     try {
       final snapshot = await _database.child('alumni').get();
       if (snapshot.exists) {
-        final Map<String, dynamic> allUsersData = Map<String, dynamic>.from(snapshot.value as Map);
+        final Map<String, dynamic> allUsersData =
+        Map<String, dynamic>.from(snapshot.value as Map);
 
         DateTime now = DateTime.now();
         List<Map<String, dynamic>> birthdays = [];
@@ -97,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'name': userData['name'],
                 'dob': userData['dob'],
                 'imageUrl': userData['imageUrl'],
+                'blurHash': userData['blurHash'],
                 'nextBirthday': nextBirthday,
               });
             }
@@ -112,10 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _showErrorSnackbar('No alumni data found');
       }
     } catch (error) {
-      _showErrorSnackbar('Error fetching upcoming birthdays: ${error.toString()}');
+      _showErrorSnackbar(
+          'Error fetching upcoming birthdays: ${error.toString()}');
     } finally {
       setState(() {
-        _isLoading = false;
+        _isLoadingBirthdays = false;
       });
     }
   }
@@ -138,9 +144,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = [
-      _isLoading ? _buildShimmerHomeContent() : _buildHomeContent(),
-      SearchPage(currentCourse: _currentUserCourse, currentYear: _currentUserYear),
-      ProfilePage(userName: _currentUserName, userEmail: _currentUserEmail, userImageUrl: _currentUserImageUrl),
+      _isLoadingUserData || _isLoadingBirthdays
+          ? const Center(child: CircularProgressIndicator())
+          : _buildHomeContent(),
+      SearchPage(
+          currentCourse: _currentUserCourse, currentYear: _currentUserYear),
+      ProfilePage(
+        userName: _currentUserName,
+        userEmail: _currentUserEmail,
+        userImageUrl: _currentUserImageUrl,
+        blurHash: _currentUserBlurHash,
+      ),
     ];
 
     return Scaffold(
@@ -202,43 +216,42 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildUserInfoCard(),
-          // const SizedBox(height: 20),
-          // _buildRecentActivitiesSection(),
-          const SizedBox(height: 20),
-          _buildUpcomingBirthdaysSection(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShimmerHomeContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
-            child: Container(
-              width: double.infinity,
-              height: 24.0,
-              color: Colors.white,
-            ),
+          UserInfoCard(
+            userName: _currentUserName,
+            userEmail: _currentUserEmail,
+            userCourse: _currentUserCourse,
+            userYear: _currentUserYear,
+            imageUrl: _currentUserImageUrl,
+            blurHash: _currentUserBlurHash,
           ),
           const SizedBox(height: 20),
-          _buildShimmerUserInfoCard(),
-          // const SizedBox(height: 20),
-          // _buildShimmerRecentActivitiesSection(),
-          const SizedBox(height: 20),
-          _buildShimmerUpcomingBirthdaysSection(),
+          UpcomingBirthdaysSection(upcomingBirthdays: _upcomingBirthdays),
         ],
       ),
     );
   }
+}
 
-  Widget _buildUserInfoCard() {
+class UserInfoCard extends StatelessWidget {
+  final String userName;
+  final String userEmail;
+  final String userCourse;
+  final String userYear;
+  final String? imageUrl;
+  final String? blurHash;
+
+  const UserInfoCard({
+    Key? key,
+    required this.userName,
+    required this.userEmail,
+    required this.userCourse,
+    required this.userYear,
+    this.imageUrl,
+    this.blurHash,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -248,30 +261,21 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            _currentUserImageUrl != null
-                ? CircleAvatar(
-              radius: 30,
-              backgroundImage: NetworkImage(_currentUserImageUrl!),
-            )
-                : CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.grey.shade300,
-              child: const Icon(Icons.person, size: 30, color: Colors.white),
-            ),
+            UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _currentUserName,
+                    userName,
                     style: const TextStyle(
                       fontSize: 20.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    _currentUserEmail,
+                    userEmail,
                     style: const TextStyle(
                       fontSize: 16.0,
                       color: Colors.grey,
@@ -279,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    _currentUserCourse,
+                    userCourse,
                     style: const TextStyle(
                       fontSize: 16.0,
                       color: Colors.grey,
@@ -287,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    _currentUserYear,
+                    userYear,
                     style: const TextStyle(
                       fontSize: 16.0,
                       color: Colors.grey,
@@ -302,169 +306,82 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  Widget _buildShimmerUserInfoCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
+class UserAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String? blurHash;
+
+  const UserAvatar({
+    Key? key,
+    this.imageUrl,
+    this.blurHash,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      key: UniqueKey(),
+      radius: 30,
+      backgroundColor: Colors.grey.shade300,
+      child: ClipOval(
+        child: imageUrl != null
+            ? Stack(
           children: [
-            Shimmer.fromColors(
-              baseColor: Colors.grey.shade300,
-              highlightColor: Colors.grey.shade100,
-              child: const CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white,
+            if (blurHash != null)
+              BlurHash(
+                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                imageFit: BoxFit.cover,
+                decodingWidth: 60,
+                decodingHeight: 60,
               ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: double.infinity,
-                      height: 20.0,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: double.infinity,
-                      height: 16.0,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: double.infinity,
-                      height: 16.0,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: double.infinity,
-                      height: 16.0,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+            Image.network(
+              '$imageUrl?${DateTime.now().millisecondsSinceEpoch}',
+              fit: BoxFit.cover,
+              width: 60,
+              height: 60,
+              errorBuilder: (context, error, stackTrace) {
+                return blurHash != null
+                    ? BlurHash(
+                  hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                )
+                    : const Icon(
+                  Icons.person,
+                  color: Colors.grey,
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                } else {
+                  return blurHash != null
+                      ? BlurHash(
+                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                  )
+                      : const CircularProgressIndicator();
+                }
+              },
             ),
           ],
+        )
+            : const Icon(
+          Icons.person,
+          color: Colors.grey,
         ),
       ),
     );
   }
+}
 
-  Widget _buildRecentActivitiesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Recent Activities',
-          style: TextStyle(
-            fontSize: 20.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildActivityTile(
-          icon: Icons.event,
-          title: 'Alumni Meetup Event',
-          subtitle: 'Join the upcoming alumni meetup event on 25th June.',
-        ),
-        _buildActivityTile(
-          icon: Icons.article,
-          title: 'Alumni News',
-          subtitle: 'Check out the latest news in the alumni community.',
-        ),
-      ],
-    );
-  }
 
-  Widget _buildShimmerRecentActivitiesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            width: double.infinity,
-            height: 20.0,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildShimmerActivityTile(),
-        _buildShimmerActivityTile(),
-      ],
-    );
-  }
+class UpcomingBirthdaysSection extends StatelessWidget {
+  final List<Map<String, dynamic>> upcomingBirthdays;
 
-  Widget _buildActivityTile({required IconData icon, required String title, required String subtitle}) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xff986ae7)),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16.0, color: Colors.grey),
-      onTap: () {
-        // Handle activity tile tap
-      },
-    );
-  }
+  const UpcomingBirthdaysSection({Key? key, required this.upcomingBirthdays})
+      : super(key: key);
 
-  Widget _buildShimmerActivityTile() {
-    return ListTile(
-      leading: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: const CircleAvatar(
-          radius: 20,
-          backgroundColor: Colors.white,
-        ),
-      ),
-      title: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: Container(
-          width: double.infinity,
-          height: 16.0,
-          color: Colors.white,
-        ),
-      ),
-      subtitle: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: Container(
-          width: double.infinity,
-          height: 14.0,
-          color: Colors.white,
-        ),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16.0, color: Colors.grey),
-    );
-  }
-
-  Widget _buildUpcomingBirthdaysSection() {
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -476,89 +393,42 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        ..._upcomingBirthdays.map((birthday) => _buildBirthdayCard(
-            birthday['name'], birthday['dob'], birthday['imageUrl'])),
+        ...upcomingBirthdays.map((birthday) => BirthdayCard(
+            name: birthday['name'],
+            birthday: birthday['dob'],
+            imageUrl: birthday['imageUrl'],
+            blurHash: birthday['blurHash'])),
       ],
     );
   }
+}
 
-  Widget _buildShimmerUpcomingBirthdaysSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            width: double.infinity,
-            height: 20.0,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildShimmerBirthdayCard(),
-        _buildShimmerBirthdayCard(),
-      ],
-    );
-  }
+class BirthdayCard extends StatelessWidget {
+  final String name;
+  final String birthday;
+  final String? imageUrl;
+  final String? blurHash;
 
-  Widget _buildBirthdayCard(String name, String birthday, String? imageUrl) {
+  const BirthdayCard({
+    Key? key,
+    required this.name,
+    required this.birthday,
+    this.imageUrl,
+    this.blurHash,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        leading: imageUrl != null
-            ? CircleAvatar(
-          radius: 30,
-          backgroundImage: NetworkImage(imageUrl),
-        )
-            : CircleAvatar(
-          radius: 30,
-          backgroundColor: Colors.grey.shade300,
-          child: const Icon(Icons.person, size: 30, color: Colors.white),
-        ),
+        leading: UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
         title: Text(name),
         subtitle: Text('Birthday: $birthday'),
-        onTap: () => (),
-      ),
-    );
-  }
-
-  Widget _buildShimmerBirthdayCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: const CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white,
-          ),
-        ),
-        title: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            width: double.infinity,
-            height: 16.0,
-            color: Colors.white,
-          ),
-        ),
-        subtitle: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            width: double.infinity,
-            height: 14.0,
-            color: Colors.white,
-          ),
-        ),
+        onTap: () => {},
       ),
     );
   }

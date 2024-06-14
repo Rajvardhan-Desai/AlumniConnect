@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ViewProfilePage extends StatelessWidget {
-  final Map<dynamic, dynamic> userProfile;
+  final Map<String, dynamic> userProfile;
 
   const ViewProfilePage({super.key, required this.userProfile});
 
-  Future<void> _launchEmail(String email, BuildContext context) async {
-    final Uri emailUri = Uri(
-      scheme: 'mailto',
-      path: email,
-    );
+  Future<void> _launchEmail(String? email, BuildContext context) async {
+    if (email == null || email.isEmpty) {
+      _handleError(context, 'Email address is not available.');
+      return;
+    }
+    final Uri emailUri = Uri(scheme: 'mailto', path: email);
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri).catchError((error) {
         _handleError(context, 'Could not launch email app. Please check your email settings.');
@@ -20,11 +21,12 @@ class ViewProfilePage extends StatelessWidget {
     }
   }
 
-  Future<void> _launchDialer(String phoneNumber, BuildContext context) async {
-    final Uri launchUri = Uri(
-      scheme: 'tel',
-      path: phoneNumber,
-    );
+  Future<void> _launchDialer(String? phoneNumber, BuildContext context) async {
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      _handleError(context, 'Phone number is not available.');
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(launchUri)) {
       await launchUrl(launchUri).catchError((error) {
         _handleError(context, 'Could not launch dialer. Please check your phone settings.');
@@ -34,9 +36,9 @@ class ViewProfilePage extends StatelessWidget {
     }
   }
 
-  void _handleError(BuildContext context, String error) {
+  void _handleError(BuildContext context, String error, {Duration duration = const Duration(seconds: 3)}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error)),
+      SnackBar(content: Text(error), duration: duration),
     );
   }
 
@@ -58,7 +60,10 @@ class ViewProfilePage extends StatelessWidget {
           ),
           onTap: onTap,
         ),
-        const Divider(thickness: 0.5),
+        const Padding(
+          padding: EdgeInsets.only(left: 55.0), // Adjust padding as needed
+          child: Divider(thickness: 0.5),
+        ),
       ],
     );
   }
@@ -70,7 +75,7 @@ class ViewProfilePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xff986ae7),
-        iconTheme: const IconThemeData(color: Colors.white), // Set the back arrow color to white
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -89,32 +94,23 @@ class ViewProfilePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Hero(
-                tag: 'profileName-$uid',
-                child: Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: const Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(userProfile['name'] ?? 'No Name', style: const TextStyle(fontSize: 18)),
-                  ),
-                ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(userProfile['name'] ?? 'No Name', style: const TextStyle(fontSize: 18)),
               ),
-              const Divider(thickness: 0.5),
-              Hero(
-                tag: 'profileEmail-$uid',
-                child: Material(
-                  color: Colors.transparent,
-                  child: _buildProfileTile(
-                    context,
-                    Icons.email_outlined,
-                    'Email',
-                    userProfile['email'],
-                    onTap: () async {
-                      await _launchEmail(userProfile['email'] ?? '', context);
-                    },
-                  ),
-                ),
+              const Padding(
+                padding: EdgeInsets.only(left: 55.0), // Adjust padding as needed
+                child: Divider(thickness: 0.5),
+              ),
+              _buildProfileTile(
+                context,
+                Icons.email_outlined,
+                'Email',
+                userProfile['email'],
+                onTap: () async {
+                  await _launchEmail(userProfile['email'], context);
+                },
               ),
               _buildProfileTile(context, Icons.cake_outlined, 'Date of Birth', userProfile['dob']),
               _buildProfileTile(
@@ -123,7 +119,7 @@ class ViewProfilePage extends StatelessWidget {
                 'Phone',
                 userProfile['phone'],
                 onTap: () async {
-                  await _launchDialer(userProfile['phone'] ?? '', context);
+                  await _launchDialer(userProfile['phone'], context);
                 },
               ),
               _buildProfileTile(context, Icons.location_city_outlined, 'City', userProfile['city']),
