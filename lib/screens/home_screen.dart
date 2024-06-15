@@ -9,7 +9,9 @@ import 'package:alumniconnect/screens/profile_page.dart';
 import 'package:alumniconnect/screens/search_page.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   HomeScreenState createState() => HomeScreenState();
@@ -26,7 +28,7 @@ class HomeScreenState extends State<HomeScreen> {
   String _currentUserYear = '';
   String? _currentUserImageUrl;
   String? _currentUserBlurHash;
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _isLoadingUserData = false;
   bool _isLoadingBirthdays = false;
 
@@ -35,6 +37,7 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _auth.authStateChanges().listen((user) {
         if (user == null) {
@@ -275,6 +278,7 @@ class UserInfoCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 5),
                   Text(
                     userEmail,
                     style: const TextStyle(
@@ -283,6 +287,7 @@ class UserInfoCard extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 5),
                   Text(
                     userCourse,
                     style: const TextStyle(
@@ -291,6 +296,7 @@ class UserInfoCard extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 5),
                   Text(
                     userYear,
                     style: const TextStyle(
@@ -321,7 +327,8 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? imageUrlWithTimestamp = imageUrl != null ? '$imageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
+    String? imageUrlWithTimestamp =
+    imageUrl != null ? '$imageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
 
     return CircleAvatar(
       key: ValueKey(imageUrlWithTimestamp), // Use a unique key to force rebuild
@@ -361,7 +368,6 @@ class UserAvatar extends StatelessWidget {
   }
 }
 
-
 class UpcomingBirthdaysSection extends StatelessWidget {
   final List<Map<String, dynamic>> upcomingBirthdays;
 
@@ -372,12 +378,18 @@ class UpcomingBirthdaysSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Upcoming Birthdays',
-          style: TextStyle(
-            fontSize: 20.0,
-            fontWeight: FontWeight.bold,
-          ),
+        const Row(
+          children: [
+            Icon(Icons.cake, color: Color(0xff986ae7)),
+            SizedBox(width: 8),
+            Text(
+              'Upcoming Birthdays',
+              style: TextStyle(
+                fontSize: 20.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         ...upcomingBirthdays.map((birthday) => BirthdayCard(
