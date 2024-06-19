@@ -91,7 +91,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
       if (user != null) {
         DatabaseReference dbRef =
-            FirebaseDatabase.instance.ref('alumni/${user.uid}');
+        FirebaseDatabase.instance.ref('alumni/${user.uid}');
         final snapshot = await dbRef.get();
 
         if (snapshot.exists) {
@@ -229,7 +229,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
       if (user != null && _existingImageUrl != null) {
         final storageRef =
-            FirebaseStorage.instance.refFromURL(_existingImageUrl!);
+        FirebaseStorage.instance.refFromURL(_existingImageUrl!);
         await storageRef.delete();
         setState(() {
           _existingImageUrl = null;
@@ -257,7 +257,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
   List<String> _generateYears() {
     return List<String>.generate(DateTime.now().year - 1956,
-        (index) => (DateTime.now().year - index).toString());
+            (index) => (DateTime.now().year - index).toString());
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -304,7 +304,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           String? blurHash = _blurHash;
           if (_image != null) {
             if (_existingImageUrl != null) {
-              await CachedNetworkImage.evictFromCache(_existingImageUrl!);
+              await CachedNetworkImage.evictFromCache(imageUrl!);
             }
 
             imageUrl = await _uploadImage(user.uid);
@@ -363,7 +363,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     final imageBytes = await image.readAsBytes();
     final decodedImage = img.decodeImage(imageBytes);
     return blurhash_dart.BlurHash.encode(decodedImage!,
-            numCompX: 4, numCompY: 3)
+        numCompX: 4, numCompY: 4)
         .hash;
   }
 
@@ -485,144 +485,144 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: <Widget>[
-                        ProfileImage(
-                          image: _image,
-                          existingImageUrl: _existingImageUrl,
-                          blurHash: _blurHash,
-                          pickImage: _pickImage,
-                          removeImage: _removeImage,
-                          showImageSourceActionSheet:
-                              _showImageSourceActionSheet,
-                        ),
-                        const SizedBox(height: 20.0),
-                        CustomTextFormField(
-                          controller: _nameController,
-                          labelText: 'Full Name',
-                          validator: _requiredValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _emailController,
-                          labelText: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                          validator: _emailValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _phoneController,
-                          labelText: 'Phone Number',
-                          keyboardType: TextInputType.phone,
-                          validator: _phoneValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _dobController,
-                          labelText: 'Date of Birth',
-                          keyboardType: TextInputType.datetime,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
-                          ],
-                          validator: _dateValidator,
-                          readOnly: true,
-                          onTap: () {
-                            FocusScope.of(context).requestFocus(FocusNode());
-                            _selectDate(context);
-                          },
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _organizationController,
-                          labelText: 'Organization',
-                          validator: _requiredValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _designationController,
-                          labelText: 'Designation',
-                          validator: _requiredValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _cityController,
-                          labelText: 'City',
-                          validator: _requiredValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomTextFormField(
-                          controller: _addressController,
-                          labelText: 'Address',
-                          validator: _requiredValidator,
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomDropdownFormField(
-                          labelText: 'Graduation Year',
-                          value: _selectedYear,
-                          items: _generateYears(),
-                          validator: _requiredValidator,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedYear = value;
-                            });
-                            _checkForChanges();
-                          },
-                        ),
-                        const SizedBox(height: 16.0),
-                        CustomDropdownFormField(
-                          labelText: 'Course',
-                          value: _selectedCourse,
-                          items: const [
-                            'Civil & Rural Engineering',
-                            'Information Technology',
-                            'Computer Engineering',
-                            'Electronics & Tele-communication Engineering',
-                            'Electrical Engineering',
-                            'Mechanical Engineering',
-                          ],
-                          validator: _requiredValidator,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCourse = value;
-                            });
-                            _checkForChanges();
-                          },
-                        ),
-                        const SizedBox(height: 30.0),
-                        _isButtonLoading
-                            ? const CircularProgressIndicator()
-                            : ElevatedButton(
-                                onPressed: _isButtonLoading || !_isChanged
-                                    ? null
-                                    : () => _updateProfile(),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepPurple,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10.0),
-                                  ),
-                                  minimumSize: const Size(double.infinity, 50),
-                                ),
-                                child: const Text(
-                                  'Update Profile',
-                                  style: TextStyle(
-                                    fontSize: 18.0,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                        const SizedBox(height: 30.0)
-                      ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                children: <Widget>[
+                  ProfileImage(
+                    image: _image,
+                    existingImageUrl: _existingImageUrl,
+                    blurHash: _blurHash,
+                    pickImage: _pickImage,
+                    removeImage: _removeImage,
+                    showImageSourceActionSheet:
+                    _showImageSourceActionSheet,
+                  ),
+                  const SizedBox(height: 20.0),
+                  CustomTextFormField(
+                    controller: _nameController,
+                    labelText: 'Full Name',
+                    validator: _requiredValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _emailController,
+                    labelText: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                    validator: _emailValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _phoneController,
+                    labelText: 'Phone Number',
+                    keyboardType: TextInputType.phone,
+                    validator: _phoneValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _dobController,
+                    labelText: 'Date of Birth',
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
+                    ],
+                    validator: _dateValidator,
+                    readOnly: true,
+                    onTap: () {
+                      FocusScope.of(context).requestFocus(FocusNode());
+                      _selectDate(context);
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _organizationController,
+                    labelText: 'Organization',
+                    validator: _requiredValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _designationController,
+                    labelText: 'Designation',
+                    validator: _requiredValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _cityController,
+                    labelText: 'City',
+                    validator: _requiredValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _addressController,
+                    labelText: 'Address',
+                    validator: _requiredValidator,
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomDropdownFormField(
+                    labelText: 'Graduation Year',
+                    value: _selectedYear,
+                    items: _generateYears(),
+                    validator: _requiredValidator,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedYear = value;
+                      });
+                      _checkForChanges();
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomDropdownFormField(
+                    labelText: 'Course',
+                    value: _selectedCourse,
+                    items: const [
+                      'Civil & Rural Engineering',
+                      'Information Technology',
+                      'Computer Engineering',
+                      'Electronics & Tele-communication Engineering',
+                      'Electrical Engineering',
+                      'Mechanical Engineering',
+                    ],
+                    validator: _requiredValidator,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCourse = value;
+                      });
+                      _checkForChanges();
+                    },
+                  ),
+                  const SizedBox(height: 30.0),
+                  _isButtonLoading
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                    onPressed: _isButtonLoading || !_isChanged
+                        ? null
+                        : () => _updateProfile(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: const Text(
+                      'Update Profile',
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 30.0)
+                ],
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -711,16 +711,16 @@ class ProfileImage extends StatelessWidget {
                   BlurHash(
                     hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
                     imageFit: BoxFit.cover,
-                    decodingWidth: 120,
-                    decodingHeight: 120,
+                    decodingWidth: 200,
+                    decodingHeight: 200,
                   ),
                   CachedNetworkImage(
                     key: ValueKey(
                         imageUrl), // Ensure cache-busting by using a unique key
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
-                    width: 120,
-                    height: 120,
+                    width: 200,
+                    height: 200,
                     placeholder: (context, url) => BlurHash(
                       hash:
                       blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',

@@ -5,18 +5,20 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 class UserAvatar extends StatelessWidget {
   final String? imageUrl;
   final String? blurHash;
+  final double radius; // Add the radius parameter
 
   const UserAvatar({
     super.key,
     this.imageUrl,
     this.blurHash,
+    this.radius = 25.0, // Default value for radius
   });
 
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
       key: ValueKey(imageUrl), // Use a unique key to force rebuild
-      radius: 30,
+      radius: radius, // Use the radius parameter
       backgroundColor: Colors.grey.shade300,
       child: ClipOval(
         child: imageUrl != null
@@ -25,15 +27,15 @@ class UserAvatar extends StatelessWidget {
             BlurHash(
               hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
               imageFit: BoxFit.cover,
-              decodingWidth: 60,
-              decodingHeight: 60,
+              decodingWidth: 200,
+              decodingHeight: 200,
             ),
             CachedNetworkImage(
               key: ValueKey(imageUrl), // Ensure proper caching
               imageUrl: imageUrl!,
               fit: BoxFit.cover,
-              width: 60,
-              height: 60,
+              width: 2 * radius, // Use the radius parameter
+              height: 2 * radius, // Use the radius parameter
               placeholder: (context, url) => BlurHash(
                 hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
               ),

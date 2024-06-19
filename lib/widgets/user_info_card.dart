@@ -30,7 +30,7 @@ class UserInfoCard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
+            UserAvatar(imageUrl: imageUrl, blurHash: blurHash,radius: 30.0),
             const SizedBox(width: 20),
             Expanded(
               child: Column(

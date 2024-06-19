@@ -2,14 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:alumniconnect/screens/edit_profile_screen.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
+import 'package:alumniconnect/widgets/user_avatar.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userName;
   final String userEmail;
   final String? userImageUrl;
   final String? blurHash;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth;
 
   ProfilePage({
     super.key,
@@ -17,7 +17,7 @@ class ProfilePage extends StatelessWidget {
     required this.userEmail,
     this.userImageUrl,
     this.blurHash,
-  });
+  })  : _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +26,10 @@ class ProfilePage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ProfileImageWithLoading(
-              userImageUrl: userImageUrl,
+            UserAvatar(
+              imageUrl: userImageUrl,
               blurHash: blurHash,
+              radius: 60,
             ),
             const SizedBox(height: 10),
             Text(
@@ -50,17 +51,7 @@ class ProfilePage extends StatelessWidget {
             ProfileOption(
               icon: Icons.edit,
               text: 'Edit Profile',
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const EditProfileScreen()),
-                );
-
-                if (result == true && userImageUrl != null) {
-                  await CachedNetworkImage.evictFromCache(userImageUrl!);
-                }
-              },
+              onTap: () => _navigateToEditProfile(context),
             ),
             const Divider(),
             ProfileOption(
@@ -87,14 +78,23 @@ class ProfilePage extends StatelessWidget {
             ProfileOption(
               icon: Icons.logout,
               text: 'Sign Out',
-              onTap: () {
-                _confirmSignOut(context);
-              },
+              onTap: () => _confirmSignOut(context),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _navigateToEditProfile(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+    );
+
+    if (result == true && userImageUrl != null) {
+      await CachedNetworkImage.evictFromCache(userImageUrl!);
+    }
   }
 
   void _confirmSignOut(BuildContext context) {
@@ -114,9 +114,7 @@ class ProfilePage extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                if (context.mounted) {
-                  _signOut(context);
-                }
+                _signOut(context);
               },
               child: const Text('Sign Out'),
             ),
@@ -126,11 +124,12 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _signOut(BuildContext context) async {
+  Future<void> _signOut(BuildContext context) async {
     try {
       await _auth.signOut();
       if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, 'SignInScreen', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+            context, 'SignInScreen', (route) => false);
       }
     } catch (e) {
       if (context.mounted) {
@@ -141,51 +140,6 @@ class ProfilePage extends StatelessWidget {
         );
       }
     }
-  }
-}
-
-class ProfileImageWithLoading extends StatelessWidget {
-  final String? userImageUrl;
-  final String? blurHash;
-
-  const ProfileImageWithLoading({super.key, this.userImageUrl, this.blurHash});
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 60,
-      backgroundColor: Colors.grey[300],
-      child: ClipOval(
-        child: userImageUrl != null
-            ? Stack(
-          children: [
-            BlurHash(
-              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              imageFit: BoxFit.cover,
-              decodingWidth: 120,
-              decodingHeight: 120,
-            ),
-            CachedNetworkImage(
-              imageUrl: userImageUrl!,
-              fit: BoxFit.cover,
-              width: 120,
-              height: 120,
-              placeholder: (context, url) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-              errorWidget: (context, url, error) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-            ),
-          ],
-        )
-            : const Icon(
-          Icons.person,
-          size: 60,
-          color: Colors.white,
-        ),
-      ),
-    );
   }
 }
 

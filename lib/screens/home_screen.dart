@@ -33,15 +33,15 @@ class HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       userNotifier.fetchUserData().catchError((error) {
-        _showErrorSnackbar(error.toString());
+        _showErrorSnackBar(error.toString());
       });
       birthdayNotifier.fetchUpcomingBirthdays().catchError((error) {
-        _showErrorSnackbar(error.toString());
+        _showErrorSnackBar(error.toString());
       });
     });
   }
 
-  void _showErrorSnackbar(String message) {
+  void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

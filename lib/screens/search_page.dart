@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
+import 'package:alumniconnect/widgets/user_avatar.dart'; // Import the UserAvatar widget
 import 'view_profile_page.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchPage extends StatefulWidget {
   final String currentCourse;
@@ -410,6 +409,7 @@ class SearchPageState extends State<SearchPage> {
         ),
       ),
     );
+
   }
 
   void _showTooltip(BuildContext context) {
@@ -612,36 +612,10 @@ class AlumniListTile extends StatelessWidget {
     return ListTile(
       leading: Hero(
         tag: 'profileImage-$uid',
-        child: CircleAvatar(
-          key: UniqueKey(),
+        child: UserAvatar(
+          imageUrl: result['imageUrl'],
+          blurHash: blurHash,
           radius: 25,
-          backgroundColor: Colors.grey.shade300,
-          child: ClipOval(
-            child: result['imageUrl'] != null
-                ? Stack(
-              children: [
-                BlurHash(
-                  hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                  imageFit: BoxFit.cover,
-                  decodingWidth: 60,
-                  decodingHeight: 60,
-                ),
-                CachedNetworkImage(
-                  imageUrl: result['imageUrl'],
-                  fit: BoxFit.cover,
-                  width: 60,
-                  height: 60,
-                  placeholder: (context, url) => BlurHash(
-                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                  ),
-                  errorWidget: (context, url, error) => BlurHash(
-                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                  ),
-                ),
-              ],
-            )
-                : const Icon(Icons.person, size: 30, color: Colors.white),
-          ),
         ),
       ),
       title: Hero(
