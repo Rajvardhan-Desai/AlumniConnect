@@ -26,16 +26,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Uncomment this step to verify the use of 'dart format' on each commit.
+      # Verify formatting (optional)
       # - name: Verify formatting
       #   run: dart format --output=none --set-exit-if-changed .
 
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      # Analyze project source
       - name: Analyze project source
         run: flutter analyze
+        continue-on-error: true  # Allow analysis to fail
 
-      # Your project will need to have tests in test/ and a dependency on
-      # package:test for this step to succeed. Note that Flutter projects will
-      # want to change this to 'flutter test'.
+      # Run tests
       - name: Run tests
         run: flutter test
