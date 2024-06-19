@@ -13,7 +13,6 @@ import 'package:image/image.dart' as img;
 import 'package:alumniconnect/util.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 
-
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -47,7 +46,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _selectedYear = _generateYears().first;
-    _selectedCourse = 'Information Technology'; // default course
+    _selectedCourse = 'Computer Engineering'; // default course
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserProfile();
     });
@@ -92,7 +91,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
       if (user != null) {
         DatabaseReference dbRef =
-        FirebaseDatabase.instance.ref('alumni/${user.uid}');
+            FirebaseDatabase.instance.ref('alumni/${user.uid}');
         final snapshot = await dbRef.get();
 
         if (snapshot.exists) {
@@ -204,8 +203,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           _checkForChanges();
         } else {
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "Image size should be less than 2MB.",
-                Colors.red);
+            showSnackBar(scaffoldMessenger,
+                "Image size should be less than 2MB.", Colors.red);
           }
         }
       } else {
@@ -214,8 +213,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
     } catch (e) {
-      showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
-          Colors.red);
+      showSnackBar(
+          scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
     }
   }
 
@@ -230,7 +229,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
       if (user != null && _existingImageUrl != null) {
         final storageRef =
-        FirebaseStorage.instance.refFromURL(_existingImageUrl!);
+            FirebaseStorage.instance.refFromURL(_existingImageUrl!);
         await storageRef.delete();
         setState(() {
           _existingImageUrl = null;
@@ -258,7 +257,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
   List<String> _generateYears() {
     return List<String>.generate(DateTime.now().year - 1956,
-            (index) => (DateTime.now().year - index).toString());
+        (index) => (DateTime.now().year - index).toString());
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -277,7 +276,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       lastDate: eighteenYearsAgo,
       initialEntryMode: DatePickerEntryMode.input,
       initialDate: initialDate,
-      locale: const Locale('en', 'GB'), // Set locale to 'en_GB' for dd/MM/yyyy format
+      locale: const Locale(
+          'en', 'GB'), // Set locale to 'en_GB' for dd/MM/yyyy format
     );
 
     if (selectedDate != null) {
@@ -288,7 +288,6 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       });
     }
   }
-
 
   Future<void> _updateProfile() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -304,13 +303,13 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           String? imageUrl = _existingImageUrl;
           String? blurHash = _blurHash;
           if (_image != null) {
-            // Clear old cached image before uploading new one
             if (_existingImageUrl != null) {
               await CachedNetworkImage.evictFromCache(_existingImageUrl!);
             }
 
             imageUrl = await _uploadImage(user.uid);
-            imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
+            imageUrl = imageUrl?.replaceAll('.${imageUrl.split('.').last}',
+                '_200x200.${imageUrl.split('.').last}');
             blurHash = await _generateBlurHash(_image!);
           }
 
@@ -322,7 +321,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           await _updateUserProfile(user.uid, imageUrl, blurHash);
 
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "Profile updated successfully!", Colors.green);
+            showSnackBar(scaffoldMessenger, "Profile updated successfully!",
+                Colors.green);
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -331,12 +331,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           }
         } else {
           if (mounted) {
-            showSnackBar(scaffoldMessenger, "User not authenticated.", Colors.red);
+            showSnackBar(
+                scaffoldMessenger, "User not authenticated.", Colors.red);
           }
         }
       } catch (e) {
         if (mounted) {
-          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
+          showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
+              Colors.red);
         }
       } finally {
         if (mounted) {
@@ -347,7 +349,6 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
-
 
   Future<String?> _uploadImage(String uid) async {
     final storageRef = FirebaseStorage.instance
@@ -361,10 +362,13 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   Future<String> _generateBlurHash(File image) async {
     final imageBytes = await image.readAsBytes();
     final decodedImage = img.decodeImage(imageBytes);
-    return blurhash_dart.BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
+    return blurhash_dart.BlurHash.encode(decodedImage!,
+            numCompX: 4, numCompY: 3)
+        .hash;
   }
 
-  Future<void> _updateUserProfile(String uid, String? imageUrl, String? blurHash) async {
+  Future<void> _updateUserProfile(
+      String uid, String? imageUrl, String? blurHash) async {
     DatabaseReference dbRef = FirebaseDatabase.instance.ref('alumni/$uid');
     await dbRef.update({
       'name': _nameController.text.trim(),
@@ -481,144 +485,144 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                children: <Widget>[
-                  ProfileImage(
-                    image: _image,
-                    existingImageUrl: _existingImageUrl,
-                    blurHash: _blurHash,
-                    pickImage: _pickImage,
-                    removeImage: _removeImage,
-                    showImageSourceActionSheet:
-                    _showImageSourceActionSheet,
-                  ),
-                  const SizedBox(height: 20.0),
-                  CustomTextFormField(
-                    controller: _nameController,
-                    labelText: 'Full Name',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: _emailValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _phoneController,
-                    labelText: 'Phone Number',
-                    keyboardType: TextInputType.phone,
-                    validator: _phoneValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _dobController,
-                    labelText: 'Date of Birth',
-                    keyboardType: TextInputType.datetime,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
-                    ],
-                    validator: _dateValidator,
-                    readOnly: true,
-                    onTap: () {
-                      FocusScope.of(context).requestFocus(FocusNode());
-                      _selectDate(context);
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _organizationController,
-                    labelText: 'Organization',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _designationController,
-                    labelText: 'Designation',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _cityController,
-                    labelText: 'City',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _addressController,
-                    labelText: 'Address',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomDropdownFormField(
-                    labelText: 'Graduation Year',
-                    value: _selectedYear,
-                    items: _generateYears(),
-                    validator: _requiredValidator,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedYear = value;
-                      });
-                      _checkForChanges();
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomDropdownFormField(
-                    labelText: 'Course',
-                    value: _selectedCourse,
-                    items: const [
-                      'Civil & Rural Engineering',
-                      'Information Technology',
-                      'Computer Engineering',
-                      'Electronics & Tele-communication Engineering',
-                      'Electrical Engineering',
-                      'Mechanical Engineering',
-                    ],
-                    validator: _requiredValidator,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCourse = value;
-                      });
-                      _checkForChanges();
-                    },
-                  ),
-                  const SizedBox(height: 30.0),
-                  _isButtonLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                    onPressed: _isButtonLoading || !_isChanged
-                        ? null
-                        : () => _updateProfile(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      minimumSize: const Size(double.infinity, 50),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: <Widget>[
+                        ProfileImage(
+                          image: _image,
+                          existingImageUrl: _existingImageUrl,
+                          blurHash: _blurHash,
+                          pickImage: _pickImage,
+                          removeImage: _removeImage,
+                          showImageSourceActionSheet:
+                              _showImageSourceActionSheet,
+                        ),
+                        const SizedBox(height: 20.0),
+                        CustomTextFormField(
+                          controller: _nameController,
+                          labelText: 'Full Name',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _emailController,
+                          labelText: 'Email',
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _emailValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _phoneController,
+                          labelText: 'Phone Number',
+                          keyboardType: TextInputType.phone,
+                          validator: _phoneValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _dobController,
+                          labelText: 'Date of Birth',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
+                          ],
+                          validator: _dateValidator,
+                          readOnly: true,
+                          onTap: () {
+                            FocusScope.of(context).requestFocus(FocusNode());
+                            _selectDate(context);
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _organizationController,
+                          labelText: 'Organization',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _designationController,
+                          labelText: 'Designation',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _cityController,
+                          labelText: 'City',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _addressController,
+                          labelText: 'Address',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomDropdownFormField(
+                          labelText: 'Graduation Year',
+                          value: _selectedYear,
+                          items: _generateYears(),
+                          validator: _requiredValidator,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedYear = value;
+                            });
+                            _checkForChanges();
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomDropdownFormField(
+                          labelText: 'Course',
+                          value: _selectedCourse,
+                          items: const [
+                            'Civil & Rural Engineering',
+                            'Information Technology',
+                            'Computer Engineering',
+                            'Electronics & Tele-communication Engineering',
+                            'Electrical Engineering',
+                            'Mechanical Engineering',
+                          ],
+                          validator: _requiredValidator,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCourse = value;
+                            });
+                            _checkForChanges();
+                          },
+                        ),
+                        const SizedBox(height: 30.0),
+                        _isButtonLoading
+                            ? const CircularProgressIndicator()
+                            : ElevatedButton(
+                                onPressed: _isButtonLoading || !_isChanged
+                                    ? null
+                                    : () => _updateProfile(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.0),
+                                  ),
+                                  minimumSize: const Size(double.infinity, 50),
+                                ),
+                                child: const Text(
+                                  'Update Profile',
+                                  style: TextStyle(
+                                    fontSize: 18.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                        const SizedBox(height: 30.0)
+                      ],
                     ),
-                    child: const Text(
-                      'Update Profile',
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
-                  const SizedBox(height: 30.0)
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -683,12 +687,12 @@ class ProfileImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? imageUrl = existingImageUrl != null ? '$existingImageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
-
+    String? imageUrl = existingImageUrl;
     return Stack(
       children: [
         Container(
-          margin: const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
+          margin:
+          const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
           child: CircleAvatar(
             key: ValueKey(imageUrl), // Use a unique key to force rebuild
             radius: 60,
@@ -711,16 +715,19 @@ class ProfileImage extends StatelessWidget {
                     decodingHeight: 120,
                   ),
                   CachedNetworkImage(
-                    key: ValueKey(imageUrl), // Ensure cache-busting by using a unique key
+                    key: ValueKey(
+                        imageUrl), // Ensure cache-busting by using a unique key
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
                     width: 120,
                     height: 120,
                     placeholder: (context, url) => BlurHash(
-                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                      hash:
+                      blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
                     ),
                     errorWidget: (context, url, error) => BlurHash(
-                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                      hash:
+                      blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
                     ),
                   ),
                 ],
@@ -752,7 +759,6 @@ class ProfileImage extends StatelessWidget {
     );
   }
 }
-
 
 class CustomTextFormField extends StatelessWidget {
   final TextEditingController controller;

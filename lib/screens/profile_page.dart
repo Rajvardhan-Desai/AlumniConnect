@@ -50,12 +50,16 @@ class ProfilePage extends StatelessWidget {
             ProfileOption(
               icon: Icons.edit,
               text: 'Edit Profile',
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => const EditProfileScreen()),
                 );
+
+                if (result == true && userImageUrl != null) {
+                  await CachedNetworkImage.evictFromCache(userImageUrl!);
+                }
               },
             ),
             const Divider(),
@@ -122,7 +126,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-
   void _signOut(BuildContext context) async {
     try {
       await _auth.signOut();
@@ -139,7 +142,6 @@ class ProfilePage extends StatelessWidget {
       }
     }
   }
-
 }
 
 class ProfileImageWithLoading extends StatelessWidget {
@@ -164,7 +166,7 @@ class ProfileImageWithLoading extends StatelessWidget {
               decodingHeight: 120,
             ),
             CachedNetworkImage(
-              imageUrl: '$userImageUrl?${DateTime.now().millisecondsSinceEpoch}',
+              imageUrl: userImageUrl!,
               fit: BoxFit.cover,
               width: 120,
               height: 120,
@@ -174,7 +176,6 @@ class ProfileImageWithLoading extends StatelessWidget {
               errorWidget: (context, url, error) => BlurHash(
                 hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
               ),
-              cacheKey: DateTime.now().millisecondsSinceEpoch.toString(), // Ensure no caching
             ),
           ],
         )

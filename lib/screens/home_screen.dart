@@ -327,11 +327,8 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? imageUrlWithTimestamp =
-    imageUrl != null ? '$imageUrl?${DateTime.now().millisecondsSinceEpoch}' : null;
-
     return CircleAvatar(
-      key: ValueKey(imageUrlWithTimestamp), // Use a unique key to force rebuild
+      key: ValueKey(imageUrl), // Use a unique key to force rebuild
       radius: 30,
       backgroundColor: Colors.grey.shade300,
       child: ClipOval(
@@ -345,8 +342,8 @@ class UserAvatar extends StatelessWidget {
               decodingHeight: 60,
             ),
             CachedNetworkImage(
-              key: ValueKey(imageUrlWithTimestamp), // Ensure cache-busting by using a unique key
-              imageUrl: imageUrlWithTimestamp!,
+              key: ValueKey(imageUrl), // Ensure proper caching
+              imageUrl: imageUrl!,
               fit: BoxFit.cover,
               width: 60,
               height: 60,
