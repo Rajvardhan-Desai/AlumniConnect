@@ -60,6 +60,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_image_compress: ^2.3.0
+  flutter_riverpod: ^2.5.1
 
 dev_dependencies:
   flutter_test:

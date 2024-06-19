@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:blurhash_dart/blurhash_dart.dart' as blurhash_dart;
 import 'package:image/image.dart' as img;
-import 'package:alumniconnect/util.dart';
+import 'package:alumniconnect/Widgets/snack_bar.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 class EditProfileScreen extends StatefulWidget {

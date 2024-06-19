@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
-import 'package:alumniconnect/util.dart';
+import 'package:alumniconnect/Widgets/snack_bar.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});

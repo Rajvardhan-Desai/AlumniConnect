@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:alumniconnect/util.dart';
+import 'package:alumniconnect/Widgets/snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';

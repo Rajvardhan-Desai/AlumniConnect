@@ -1,14 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:alumniconnect/screens/profile_page.dart';
 import 'package:alumniconnect/screens/search_page.dart';
+import 'package:alumniconnect/providers/user_provider.dart';
+import 'package:alumniconnect/providers/birthday_provider.dart';
+import 'package:alumniconnect/widgets/user_info_card.dart';
+import 'package:alumniconnect/widgets/upcoming_birthdays_section.dart';
 
-class HomeScreen extends StatefulWidget {
+
+class HomeScreen extends ConsumerStatefulWidget {
   final int initialIndex;
 
   const HomeScreen({super.key, this.initialIndex = 0});
@@ -17,117 +18,27 @@ class HomeScreen extends StatefulWidget {
   HomeScreenState createState() => HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  String _currentUserName = '';
-  String _currentUserEmail = '';
-  String _currentUserCourse = '';
-  String _currentUserYear = '';
-  String? _currentUserImageUrl;
-  String? _currentUserBlurHash;
   late int _selectedIndex;
-  bool _isLoadingUserData = false;
-  bool _isLoadingBirthdays = false;
-
-  List<Map<String, dynamic>> _upcomingBirthdays = [];
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+
+    final userNotifier = ref.read(userProvider.notifier);
+    final birthdayNotifier = ref.read(birthdayProvider.notifier);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _auth.authStateChanges().listen((user) {
-        if (user == null) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, 'SignInScreen', (route) => false);
-        } else {
-          _fetchUserData(user.uid);
-          _fetchUpcomingBirthdays();
-        }
+      userNotifier.fetchUserData().catchError((error) {
+        _showErrorSnackbar(error.toString());
+      });
+      birthdayNotifier.fetchUpcomingBirthdays().catchError((error) {
+        _showErrorSnackbar(error.toString());
       });
     });
-  }
-
-  Future<void> _fetchUserData(String userId) async {
-    setState(() {
-      _isLoadingUserData = true;
-    });
-    try {
-      final snapshot = await _database.child('alumni').child(userId).get();
-      if (snapshot.exists) {
-        final userData = Map<String, dynamic>.from(snapshot.value as Map);
-        setState(() {
-          _currentUserName = userData['name'] ?? 'User';
-          _currentUserEmail = userData['email'] ?? 'No email';
-          _currentUserImageUrl = userData['imageUrl'];
-          _currentUserBlurHash = userData['blurHash'];
-          _currentUserCourse = userData['course'] ?? 'Unknown course';
-          _currentUserYear = userData['year'] ?? 'Unknown year';
-        });
-      } else {
-        _showErrorSnackbar('User data not found');
-      }
-    } catch (error) {
-      _showErrorSnackbar('Error fetching user data: ${error.toString()}');
-    } finally {
-      setState(() {
-        _isLoadingUserData = false;
-      });
-    }
-  }
-
-  Future<void> _fetchUpcomingBirthdays() async {
-    setState(() {
-      _isLoadingBirthdays = true;
-    });
-    try {
-      final snapshot = await _database.child('alumni').get();
-      if (snapshot.exists) {
-        final Map<String, dynamic> allUsersData =
-        Map<String, dynamic>.from(snapshot.value as Map);
-
-        DateTime now = DateTime.now();
-        List<Map<String, dynamic>> birthdays = [];
-
-        allUsersData.forEach((key, value) {
-          final userData = Map<String, dynamic>.from(value as Map);
-          if (userData.containsKey('dob')) {
-            DateTime dob = DateFormat('dd/MM/yyyy').parse(userData['dob']);
-            DateTime nextBirthday = DateTime(now.year, dob.month, dob.day);
-            if (nextBirthday.isBefore(now)) {
-              nextBirthday = DateTime(now.year + 1, dob.month, dob.day);
-            }
-            if (nextBirthday.difference(now).inDays <= 30) {
-              birthdays.add({
-                'name': userData['name'],
-                'dob': userData['dob'],
-                'imageUrl': userData['imageUrl'],
-                'blurHash': userData['blurHash'],
-                'nextBirthday': nextBirthday,
-              });
-            }
-          }
-        });
-
-        birthdays.sort((a, b) => a['nextBirthday'].compareTo(b['nextBirthday']));
-
-        setState(() {
-          _upcomingBirthdays = birthdays;
-        });
-      } else {
-        _showErrorSnackbar('No alumni data found');
-      }
-    } catch (error) {
-      _showErrorSnackbar(
-          'Error fetching upcoming birthdays: ${error.toString()}');
-    } finally {
-      setState(() {
-        _isLoadingBirthdays = false;
-      });
-    }
   }
 
   void _showErrorSnackbar(String message) {
@@ -147,17 +58,22 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userState = ref.watch(userProvider);
+    final birthdayState = ref.watch(birthdayProvider);
+
     final List<Widget> widgetOptions = [
-      _isLoadingUserData || _isLoadingBirthdays
+      userState.isLoading || birthdayState.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildHomeContent(),
+          : _buildHomeContent(userState, birthdayState),
       SearchPage(
-          currentCourse: _currentUserCourse, currentYear: _currentUserYear),
+        currentCourse: userState.course,
+        currentYear: userState.year,
+      ),
       ProfilePage(
-        userName: _currentUserName,
-        userEmail: _currentUserEmail,
-        userImageUrl: _currentUserImageUrl,
-        blurHash: _currentUserBlurHash,
+        userName: userState.name,
+        userEmail: userState.email,
+        userImageUrl: userState.imageUrl,
+        blurHash: userState.blurHash,
       ),
     ];
 
@@ -206,14 +122,14 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHomeContent() {
+  Widget _buildHomeContent(UserState userState, BirthdayState birthdayState) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome, $_currentUserName!',
+            'Welcome, ${userState.name}!',
             style: const TextStyle(
               fontSize: 24.0,
               fontWeight: FontWeight.bold,
@@ -221,210 +137,16 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
           UserInfoCard(
-            userName: _currentUserName,
-            userEmail: _currentUserEmail,
-            userCourse: _currentUserCourse,
-            userYear: _currentUserYear,
-            imageUrl: _currentUserImageUrl,
-            blurHash: _currentUserBlurHash,
+            userName: userState.name,
+            userEmail: userState.email,
+            userCourse: userState.course,
+            userYear: userState.year,
+            imageUrl: userState.imageUrl,
+            blurHash: userState.blurHash,
           ),
           const SizedBox(height: 20),
-          UpcomingBirthdaysSection(upcomingBirthdays: _upcomingBirthdays),
+          UpcomingBirthdaysSection(upcomingBirthdays: birthdayState.upcomingBirthdays),
         ],
-      ),
-    );
-  }
-}
-
-class UserInfoCard extends StatelessWidget {
-  final String userName;
-  final String userEmail;
-  final String userCourse;
-  final String userYear;
-  final String? imageUrl;
-  final String? blurHash;
-
-  const UserInfoCard({
-    super.key,
-    required this.userName,
-    required this.userEmail,
-    required this.userCourse,
-    required this.userYear,
-    this.imageUrl,
-    this.blurHash,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    userEmail,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    userCourse,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    userYear,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class UserAvatar extends StatelessWidget {
-  final String? imageUrl;
-  final String? blurHash;
-
-  const UserAvatar({
-    super.key,
-    this.imageUrl,
-    this.blurHash,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      key: ValueKey(imageUrl), // Use a unique key to force rebuild
-      radius: 30,
-      backgroundColor: Colors.grey.shade300,
-      child: ClipOval(
-        child: imageUrl != null
-            ? Stack(
-          children: [
-            BlurHash(
-              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              imageFit: BoxFit.cover,
-              decodingWidth: 60,
-              decodingHeight: 60,
-            ),
-            CachedNetworkImage(
-              key: ValueKey(imageUrl), // Ensure proper caching
-              imageUrl: imageUrl!,
-              fit: BoxFit.cover,
-              width: 60,
-              height: 60,
-              placeholder: (context, url) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-              errorWidget: (context, url, error) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-            ),
-          ],
-        )
-            : const Icon(
-          Icons.person,
-          color: Colors.grey,
-        ),
-      ),
-    );
-  }
-}
-
-class UpcomingBirthdaysSection extends StatelessWidget {
-  final List<Map<String, dynamic>> upcomingBirthdays;
-
-  const UpcomingBirthdaysSection({super.key, required this.upcomingBirthdays});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.cake, color: Color(0xff986ae7)),
-            SizedBox(width: 8),
-            Text(
-              'Upcoming Birthdays',
-              style: TextStyle(
-                fontSize: 20.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ...upcomingBirthdays.map((birthday) => BirthdayCard(
-            name: birthday['name'],
-            birthday: birthday['dob'],
-            imageUrl: birthday['imageUrl'],
-            blurHash: birthday['blurHash'])),
-      ],
-    );
-  }
-}
-
-class BirthdayCard extends StatelessWidget {
-  final String name;
-  final String birthday;
-  final String? imageUrl;
-  final String? blurHash;
-
-  const BirthdayCard({
-    super.key,
-    required this.name,
-    required this.birthday,
-    this.imageUrl,
-    this.blurHash,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
-        title: Text(name),
-        subtitle: Text('Birthday: $birthday'),
-        onTap: () => {},
       ),
     );
   }
