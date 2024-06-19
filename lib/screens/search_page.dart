@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'view_profile_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchPage extends StatefulWidget {
   final String currentCourse;
@@ -246,7 +247,9 @@ class SearchPageState extends State<SearchPage> {
 
   void _applyFilters() {
     _searchAlumni(_searchController.text.trim());
-    Navigator.pop(context);
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   void _clearSearch() {
@@ -258,9 +261,12 @@ class SearchPageState extends State<SearchPage> {
       _searchController.clear();
       _searchResults.clear();
       _hasSearched = false;
-      _fetchSuggestedAlumni();
     });
-    Navigator.pop(context);
+
+    _fetchSuggestedAlumni();
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   void _showFilterSheet(BuildContext context) {
@@ -553,7 +559,8 @@ class CustomDropdown extends StatelessWidget {
   final ValueChanged<String?>? onChanged;
   final bool isExpanded;
 
-  const CustomDropdown({super.key,
+  const CustomDropdown({
+    super.key,
     required this.label,
     required this.value,
     required this.items,
@@ -591,7 +598,8 @@ class AlumniListTile extends StatelessWidget {
   final Map<dynamic, dynamic> result;
   final Function(Map<dynamic, dynamic>) navigateToProfile;
 
-  const AlumniListTile({super.key,
+  const AlumniListTile({
+    super.key,
     required this.result,
     required this.navigateToProfile,
   });
@@ -618,25 +626,17 @@ class AlumniListTile extends StatelessWidget {
                   decodingWidth: 60,
                   decodingHeight: 60,
                 ),
-                Image.network(
-                  '${result['imageUrl']}?${DateTime.now().millisecondsSinceEpoch}',
+                CachedNetworkImage(
+                  imageUrl: result['imageUrl'],
                   fit: BoxFit.cover,
                   width: 60,
                   height: 60,
-                  errorBuilder: (context, error, stackTrace) {
-                    return BlurHash(
-                      hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) {
-                      return child;
-                    } else {
-                      return BlurHash(
-                        hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                      );
-                    }
-                  },
+                  placeholder: (context, url) => BlurHash(
+                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                  ),
+                  errorWidget: (context, url, error) => BlurHash(
+                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                  ),
                 ),
               ],
             )
