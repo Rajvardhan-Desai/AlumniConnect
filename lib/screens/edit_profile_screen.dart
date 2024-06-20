@@ -228,9 +228,13 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       final User? user = auth.currentUser;
 
       if (user != null && _existingImageUrl != null) {
-        final storageRef =
-        FirebaseStorage.instance.refFromURL(_existingImageUrl!);
+        final storageRef = FirebaseStorage.instance.refFromURL(_existingImageUrl!);
         await storageRef.delete();
+
+        // Clear the image from cache
+        await CachedNetworkImage.evictFromCache(_existingImageUrl!);
+        await CachedNetworkImage.evictFromCache('${_existingImageUrl!}?t=1'); // Ensure complete cache clear
+
         setState(() {
           _existingImageUrl = null;
         });

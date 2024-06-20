@@ -4,12 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:alumniconnect/screens/edit_profile_screen.dart';
 import 'package:alumniconnect/widgets/user_avatar.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String userName;
   final String userEmail;
   final String? userImageUrl;
   final String? blurHash;
-  final FirebaseAuth _auth;
 
   ProfilePage({
     super.key,
@@ -17,7 +16,22 @@ class ProfilePage extends StatelessWidget {
     required this.userEmail,
     this.userImageUrl,
     this.blurHash,
-  })  : _auth = FirebaseAuth.instance;
+  });
+
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String? _userImageUrl;
+  late FirebaseAuth _auth;
+
+  @override
+  void initState() {
+    super.initState();
+    _userImageUrl = widget.userImageUrl;
+    _auth = FirebaseAuth.instance;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,13 +41,14 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           children: [
             UserAvatar(
-              imageUrl: userImageUrl,
-              blurHash: blurHash,
+              key: ValueKey(_userImageUrl), // Ensure the widget rebuilds with a new key
+              imageUrl: _userImageUrl,
+              blurHash: widget.blurHash,
               radius: 60,
             ),
             const SizedBox(height: 10),
             Text(
-              userName,
+              widget.userName,
               style: const TextStyle(
                 fontSize: 24.0,
                 fontWeight: FontWeight.bold,
@@ -41,7 +56,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              userEmail,
+              widget.userEmail,
               style: TextStyle(
                 fontSize: 16.0,
                 color: Colors.grey[600],
@@ -92,9 +107,17 @@ class ProfilePage extends StatelessWidget {
       MaterialPageRoute(builder: (context) => const EditProfileScreen()),
     );
 
-    if (result == true && userImageUrl != null) {
-      await CachedNetworkImage.evictFromCache(userImageUrl!);
+    if (result == true && widget.userImageUrl != null) {
+      await _clearImageCache(widget.userImageUrl!);
+      setState(() {
+        _userImageUrl = '${widget.userImageUrl}?t=${DateTime.now().millisecondsSinceEpoch}';
+      });
     }
+  }
+
+  Future<void> _clearImageCache(String imageUrl) async {
+    await CachedNetworkImage.evictFromCache(imageUrl);
+    await CachedNetworkImage.evictFromCache('$imageUrl?t=1'); // Clear with a temp param to ensure complete cache clear
   }
 
   void _confirmSignOut(BuildContext context) {
