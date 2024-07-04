@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:alumniconnect/widgets/user_avatar.dart'; // Import the UserAvatar widget
+import 'package:alumniconnect/widgets/user_avatar.dart';
 import 'view_profile_page.dart';
 
 class SearchPage extends StatefulWidget {
@@ -211,7 +211,7 @@ class SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _fetchMoreSuggestedAlumni() async {
-    if (!_hasMore) return;
+    if (!_hasMore || _lastKey == null) return;
     setState(() {
       _isLoading = true;
     });
@@ -274,81 +274,37 @@ class SearchPageState extends State<SearchPage> {
       builder: (BuildContext context) {
         return Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filter',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              CustomDropdown(
-                label: 'Course',
-                value: _selectedCourse,
-                items: ['', ..._courses],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCourse = value?.isEmpty == true ? null : value;
-                  });
-                },
-                isExpanded: true,
-              ),
-              const SizedBox(height: 16.0),
-              CustomDropdown(
-                label: 'Graduation Year',
-                value: _selectedYear,
-                items: ['', ..._years],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedYear = value?.isEmpty == true ? null : value;
-                  });
-                },
-                isExpanded: true,
-              ),
-              const SizedBox(height: 16.0),
-              CustomDropdown(
-                label: 'City',
-                value: _selectedCity,
-                items: ['', ..._cities],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCity = value?.isEmpty == true ? null : value;
-                  });
-                },
-                isExpanded: true,
-              ),
-              const SizedBox(height: 16.0),
-              CustomDropdown(
-                label: 'Designation',
-                value: _selectedDesignation,
-                items: ['', ..._designations],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDesignation = value?.isEmpty == true ? null : value;
-                  });
-                },
-                isExpanded: true,
-              ),
-              const SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: _applyFilters,
-                    child: const Text('Apply'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _clearSearch,
-                    style: ElevatedButton.styleFrom(),
-                    child: const Text('Clear'),
-                  ),
-                ],
-              ),
-            ],
+          child: FilterSheet(
+            courses: _courses,
+            years: _years,
+            cities: _cities,
+            designations: _designations,
+            selectedCourse: _selectedCourse,
+            selectedYear: _selectedYear,
+            selectedCity: _selectedCity,
+            selectedDesignation: _selectedDesignation,
+            onCourseChanged: (value) {
+              setState(() {
+                _selectedCourse = value?.isEmpty == true ? null : value;
+              });
+            },
+            onYearChanged: (value) {
+              setState(() {
+                _selectedYear = value?.isEmpty == true ? null : value;
+              });
+            },
+            onCityChanged: (value) {
+              setState(() {
+                _selectedCity = value?.isEmpty == true ? null : value;
+              });
+            },
+            onDesignationChanged: (value) {
+              setState(() {
+                _selectedDesignation = value?.isEmpty == true ? null : value;
+              });
+            },
+            onApply: _applyFilters,
+            onClear: _clearSearch,
           ),
         );
       },
@@ -409,7 +365,6 @@ class SearchPageState extends State<SearchPage> {
         ),
       ),
     );
-
   }
 
   void _showTooltip(BuildContext context) {
@@ -518,8 +473,9 @@ class SearchPageState extends State<SearchPage> {
               onTap: () => _showTooltip(context),
               child: Tooltip(
                 key: _tooltipKey,
+                margin: const EdgeInsets.only(left: 6.0,right: 6.0),
                 message:
-                'Suggested based on your course (${widget.currentCourse}) and graduation year (${widget.currentYear}).',
+                'Suggested based on your course and graduation year\n (${widget.currentCourse}, ${widget.currentYear}).',
                 child: const Icon(Icons.info_outline, size: 18),
               ),
             ),
@@ -548,6 +504,108 @@ class SearchPageState extends State<SearchPage> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class FilterSheet extends StatelessWidget {
+  final List<String> courses;
+  final List<String> years;
+  final List<String> cities;
+  final List<String> designations;
+  final String? selectedCourse;
+  final String? selectedYear;
+  final String? selectedCity;
+  final String? selectedDesignation;
+  final ValueChanged<String?> onCourseChanged;
+  final ValueChanged<String?> onYearChanged;
+  final ValueChanged<String?> onCityChanged;
+  final ValueChanged<String?> onDesignationChanged;
+  final VoidCallback onApply;
+  final VoidCallback onClear;
+
+  const FilterSheet({
+    super.key,
+    required this.courses,
+    required this.years,
+    required this.cities,
+    required this.designations,
+    required this.selectedCourse,
+    required this.selectedYear,
+    required this.selectedCity,
+    required this.selectedDesignation,
+    required this.onCourseChanged,
+    required this.onYearChanged,
+    required this.onCityChanged,
+    required this.onDesignationChanged,
+    required this.onApply,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Filter',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          CustomDropdown(
+            label: 'Course',
+            value: selectedCourse,
+            items: ['', ...courses],
+            onChanged: onCourseChanged,
+            isExpanded: true,
+          ),
+          const SizedBox(height: 16.0),
+          CustomDropdown(
+            label: 'Graduation Year',
+            value: selectedYear,
+            items: ['', ...years],
+            onChanged: onYearChanged,
+            isExpanded: true,
+          ),
+          const SizedBox(height: 16.0),
+          CustomDropdown(
+            label: 'City',
+            value: selectedCity,
+            items: ['', ...cities],
+            onChanged: onCityChanged,
+            isExpanded: true,
+          ),
+          const SizedBox(height: 16.0),
+          CustomDropdown(
+            label: 'Designation',
+            value: selectedDesignation,
+            items: ['', ...designations],
+            onChanged: onDesignationChanged,
+            isExpanded: true,
+          ),
+          const SizedBox(height: 16.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: onClear,
+                style: ElevatedButton.styleFrom(),
+                child: const Text('Clear'),
+              ),
+              ElevatedButton(
+                onPressed: onApply,
+                child: const Text('Apply'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
