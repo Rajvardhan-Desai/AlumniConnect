@@ -8,7 +8,6 @@ import 'package:alumniconnect/providers/birthday_provider.dart';
 import 'package:alumniconnect/widgets/user_info_card.dart';
 import 'package:alumniconnect/widgets/upcoming_birthdays_section.dart';
 
-
 class HomeScreen extends ConsumerStatefulWidget {
   final int initialIndex;
 
@@ -145,7 +144,8 @@ class HomeScreenState extends ConsumerState<HomeScreen> {
             blurHash: userState.blurHash,
           ),
           const SizedBox(height: 20),
-          UpcomingBirthdaysSection(upcomingBirthdays: birthdayState.upcomingBirthdays),
+          if (birthdayState.upcomingBirthdays.isNotEmpty)
+            UpcomingBirthdaysSection(upcomingBirthdays: birthdayState.upcomingBirthdays),
         ],
       ),
     );
