@@ -308,7 +308,9 @@ class EditProfileScreenState extends State<EditProfileScreen> {
           String? blurHash = _blurHash;
           if (_image != null) {
             if (_existingImageUrl != null) {
+              // Clear the cached image before uploading the new one
               await CachedNetworkImage.evictFromCache(imageUrl!);
+              await CachedNetworkImage.evictFromCache('$imageUrl?t=1');
             }
 
             imageUrl = await _uploadImage(user.uid);
@@ -353,6 +355,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
+
 
   Future<String?> _uploadImage(String uid) async {
     final storageRef = FirebaseStorage.instance
