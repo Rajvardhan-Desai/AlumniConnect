@@ -259,6 +259,7 @@ class SearchPageState extends State<SearchPage> {
       _filtersApplied = true; // Mark that filters have been applied
     });
 
+
     _searchAlumni(_searchController.text.trim());
 
     if (Navigator.canPop(context)) {
@@ -329,13 +330,26 @@ class SearchPageState extends State<SearchPage> {
     );
   }
 
-  void _showErrorDialog(String message) {
+  void _showErrorDialog(String message, [String? detailedMessage]) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Error'),
-          content: Text(message),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message),
+              if (detailedMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    detailedMessage,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
           actions: [
             TextButton(
               child: const Text('OK'),
@@ -348,6 +362,7 @@ class SearchPageState extends State<SearchPage> {
       },
     );
   }
+
 
   Widget _buildShimmerPlaceholder() {
     return Shimmer.fromColors(
@@ -453,22 +468,7 @@ class SearchPageState extends State<SearchPage> {
               _filtersApplied ? Icons.filter_alt : Icons.filter_alt_outlined,
               color: const Color(0xff986ae7),
             ),
-            if (_filtersApplied)
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 12,
-                    minHeight: 12,
-                  ),
-                ),
-              ),
+            
           ],
         ),
       ),
@@ -499,7 +499,8 @@ class SearchPageState extends State<SearchPage> {
             course,
             style: TextStyle(
                 color: _textColors['Course'],
-                fontWeight: FontWeight.bold), // Use darker text color
+                fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
           ),
           backgroundColor:
               _filterColors['Course'], // Use background color for Course
@@ -522,8 +523,10 @@ class SearchPageState extends State<SearchPage> {
             style: TextStyle(
                 color: _textColors['Graduation Year'],
                 fontWeight: FontWeight.bold), // Use darker text color
+                overflow: TextOverflow.ellipsis,
           ),
-          backgroundColor: _filterColors['Graduation Year'], // Use background color for Graduation Year
+          backgroundColor: _filterColors[
+              'Graduation Year'], // Use background color for Graduation Year
           deleteIconColor: _textColors['Graduation Year'],
           onDeleted: () {
             setState(() {
@@ -540,8 +543,10 @@ class SearchPageState extends State<SearchPage> {
         return Chip(
           label: Text(
             city,
-            style:
-                TextStyle(color: _textColors['City'],fontWeight: FontWeight.bold), // Use darker text color
+            style: TextStyle(
+                color: _textColors['City'],
+                fontWeight: FontWeight.bold), // Use darker text color
+                overflow: TextOverflow.ellipsis,
           ),
           backgroundColor:
               _filterColors['City'], // Use background color for City
@@ -562,7 +567,9 @@ class SearchPageState extends State<SearchPage> {
           label: Text(
             designation,
             style: TextStyle(
-                color: _textColors['Designation'],fontWeight: FontWeight.bold), // Use darker text color
+                color: _textColors['Designation'],
+                fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,// Use darker text color
           ),
           backgroundColor: _filterColors[
               'Designation'], // Use background color for Designation
@@ -619,7 +626,11 @@ class SearchPageState extends State<SearchPage> {
               ),
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () => _searchAlumni(_searchController.text.trim()),
+              onPressed: () {
+                if (_searchController.text.trim().isNotEmpty) {
+                  _searchAlumni(_searchController.text.trim());
+                }
+              },
             ),
           ],
         ),
@@ -638,6 +649,7 @@ class SearchPageState extends State<SearchPage> {
         return AlumniListTile(
           result: result,
           navigateToProfile: _navigateToProfile,
+          index: index, // Pass the index here
         );
       },
     );
@@ -663,7 +675,7 @@ class SearchPageState extends State<SearchPage> {
                 key: _tooltipKey,
                 margin: const EdgeInsets.only(left: 6.0, right: 6.0),
                 message:
-                    'Suggested based on your course and graduation year\n (${widget.currentCourse}, ${widget.currentYear}).',
+                'Suggested based on your course and graduation year\n (${widget.currentCourse}, ${widget.currentYear}).',
                 child: const Icon(Icons.info_outline, size: 18),
               ),
             ),
@@ -674,15 +686,16 @@ class SearchPageState extends State<SearchPage> {
           child: _suggestedResults.isEmpty
               ? const Center(child: Text('No suggestions available'))
               : ListView.builder(
-                  itemCount: _suggestedResults.length,
-                  itemBuilder: (context, index) {
-                    final result = _suggestedResults[index];
-                    return AlumniListTile(
-                      result: result,
-                      navigateToProfile: _navigateToProfile,
-                    );
-                  },
-                ),
+            itemCount: _suggestedResults.length,
+            itemBuilder: (context, index) {
+              final result = _suggestedResults[index];
+              return AlumniListTile(
+                result: result,
+                navigateToProfile: _navigateToProfile,
+                index: index, // Pass the index here
+              );
+            },
+          ),
         ),
         if (_hasMore)
           Center(
@@ -694,6 +707,7 @@ class SearchPageState extends State<SearchPage> {
       ],
     );
   }
+
 }
 
 class FilterSheet extends StatefulWidget {
@@ -797,13 +811,15 @@ class FilterSheetState extends State<FilterSheet> {
         children: [
           // Close Button with Dynamic Title
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.only(
+                left: 8.0, top: 8.0, right: 8.0, bottom: 2.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _getFilterTitle(),
-                  style: const TextStyle(fontSize: 18),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -819,7 +835,7 @@ class FilterSheetState extends State<FilterSheet> {
                 // Filter Categories
                 Container(
                   width: 150,
-                  color: const Color(0xfff5f0ff),
+                  color: const Color(0xfff3f3f3),
                   child: ListView(
                     children: _filterOptions.keys.map((category) {
                       return ListTile(
@@ -842,7 +858,7 @@ class FilterSheetState extends State<FilterSheet> {
                               )
                             : null,
                         selected: _selectedCategory == category,
-                       // Set the background color for selected tile
+                        // Set the background color for selected tile
                         onTap: () {
                           setState(() {
                             _selectedCategory = category;
@@ -856,7 +872,7 @@ class FilterSheetState extends State<FilterSheet> {
                 // Filter Options
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(4.0),
                     children: _filterOptions[_selectedCategory]!.map((option) {
                       return CheckboxListTile(
                         title: Text(option),
@@ -882,7 +898,7 @@ class FilterSheetState extends State<FilterSheet> {
           const Divider(),
           // Bottom Buttons
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -893,9 +909,9 @@ class FilterSheetState extends State<FilterSheet> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xffff1f1f),
-                    side: const BorderSide(color: const Color(0xffff7777)),
+                    side: const BorderSide(color: Color(0xffff7777)),
                   ),
-                  child: const Text('Clear Filters'),
+                  child: const Text('Clear Filters',style: TextStyle(fontWeight: FontWeight.bold),),
                 ),
                 ElevatedButton(
                   onPressed: _selectedFilterCount() > 0 ? _applyFilters : null,
@@ -905,7 +921,7 @@ class FilterSheetState extends State<FilterSheet> {
                         : Colors.grey,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Show Results'),
+                  child: const Text('Show Results',style: TextStyle(fontWeight: FontWeight.bold),),
                 ),
               ],
             ),
@@ -919,16 +935,18 @@ class FilterSheetState extends State<FilterSheet> {
 class AlumniListTile extends StatelessWidget {
   final Map<dynamic, dynamic> result;
   final Function(Map<dynamic, dynamic>) navigateToProfile;
+  final int index;
 
   const AlumniListTile({
     super.key,
     required this.result,
     required this.navigateToProfile,
+    required this.index,  // Make sure this parameter is provided when constructing
   });
 
   @override
   Widget build(BuildContext context) {
-    final String uid = result['uid'] ?? 'unknown';
+    final String uid = result['uid'] ?? 'unknown-$index';
     final String? blurHash = result['blurHash'];
 
     return ListTile(
@@ -961,3 +979,5 @@ class AlumniListTile extends StatelessWidget {
     );
   }
 }
+
+
