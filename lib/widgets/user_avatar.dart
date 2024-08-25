@@ -22,28 +22,22 @@ class UserAvatar extends StatelessWidget {
       backgroundColor: Colors.grey.shade300,
       child: ClipOval(
         child: imageUrl != null && imageUrl!.isNotEmpty
-            ? Stack(
-          children: [
-            BlurHash(
-              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              imageFit: BoxFit.cover,
-              decodingWidth: 200,
-              decodingHeight: 200,
-            ),
-            CachedNetworkImage(
-              key: ValueKey(imageUrl),
-              imageUrl: imageUrl!,
-              fit: BoxFit.cover,
-              width: 2 * radius,
-              height: 2 * radius,
-              placeholder: (context, url) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-              errorWidget: (context, url, error) => BlurHash(
-                hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-              ),
-            ),
-          ],
+            ? CachedNetworkImage(
+          key: ValueKey(imageUrl),
+          imageUrl: imageUrl!,
+          fit: BoxFit.cover,
+          width: 2 * radius,
+          height: 2 * radius,
+          placeholder: (context, url) => BlurHash(
+            hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+            imageFit: BoxFit.cover,
+            decodingWidth: 200,
+            decodingHeight: 200,
+          ),
+          errorWidget: (context, url, error) => const Icon(
+            Icons.person,
+            color: Colors.grey,
+          ),
         )
             : const Icon(
           Icons.person,
