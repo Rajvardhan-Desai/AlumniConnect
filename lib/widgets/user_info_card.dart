@@ -22,6 +22,7 @@ class UserInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: const Color(0xffdfcbff),
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -30,7 +31,7 @@ class UserInfoCard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            UserAvatar(imageUrl: imageUrl, blurHash: blurHash,radius: 30.0),
+            UserAvatar(imageUrl: imageUrl, blurHash: blurHash,radius: 30.0,iconSize: 30),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
@@ -45,28 +46,19 @@ class UserInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    userEmail,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
                     userCourse,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16.0,
-                      color: Colors.grey,
+                      color: Colors.grey[700],
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 5),
                   Text(
                     userYear,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16.0,
-                      color: Colors.grey,
+                      color: Colors.grey[700],
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
