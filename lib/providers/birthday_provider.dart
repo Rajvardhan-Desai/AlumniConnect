@@ -35,8 +35,16 @@ class BirthdayNotifier extends StateNotifier<BirthdayState> {
               birthdays.add({
                 'name': userData['name'],
                 'dob': userData['dob'],
+                'designation': userData['designation'],
+                'address': userData['address'],
+                'city': userData['city'],
+                'course': userData['course'],
+                'email': userData['email'],
+                'organization': userData['organization'],
+                'phone': userData['phone'],
                 'imageUrl': userData['imageUrl'],
                 'blurHash': userData['blurHash'],
+                'year': userData['year'],
                 'nextBirthday': nextBirthday,
               });
             }
