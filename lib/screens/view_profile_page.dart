@@ -173,7 +173,7 @@ class ViewProfilePageState extends State<ViewProfilePage> {
               ),
 
               const SizedBox(height: 16),
-              const Divider(),
+              const Divider(thickness: 0.5),
               ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -184,6 +184,7 @@ class ViewProfilePageState extends State<ViewProfilePage> {
                 child: Divider(thickness: 0.5),
               ),
               _buildProfileTile(context, Icons.business_center_outlined, 'Designation', widget.userProfile['designation']),
+              _buildProfileTile(context, Icons.business_outlined, 'Organization', widget.userProfile['organization']),
               _buildProfileTile(
                 context,
                 Icons.email_outlined,
@@ -198,7 +199,6 @@ class ViewProfilePageState extends State<ViewProfilePage> {
                   }
                 },
               ),
-              _buildProfileTile(context, Icons.cake_outlined, 'Date of Birth', widget.userProfile['dob']),
               _buildProfileTile(
                 context,
                 Icons.phone_outlined,
@@ -206,18 +206,19 @@ class ViewProfilePageState extends State<ViewProfilePage> {
                 widget.userProfile['phone'],
                 onTap: () {
                   final phone = widget.userProfile['phone'];
-                  if (phone != null && phone.isNotEmpty) {
+                  if (phone != null && phone != null && phone.isNotEmpty) {
                     _launchDialer(phone);
                   } else {
                     _showError('Phone number is not available.');
                   }
                 },
               ),
-              _buildProfileTile(context, Icons.location_city_outlined, 'City', widget.userProfile['city']),
-              _buildProfileTile(context, Icons.home_outlined, 'Address', widget.userProfile['address']),
-              _buildProfileTile(context, Icons.business_outlined, 'Organization', widget.userProfile['organization']),
+              _buildProfileTile(context, Icons.cake_outlined, 'Date of Birth', widget.userProfile['dob']),
               _buildProfileTile(context, Icons.school_outlined, 'Course', widget.userProfile['course']),
               _buildProfileTile(context, Icons.calendar_today_outlined, 'Graduation Year', widget.userProfile['year']),
+              _buildProfileTile(context, Icons.location_city_outlined, 'City', widget.userProfile['city']),
+              _buildProfileTile(context, Icons.home_outlined, 'Address', widget.userProfile['address']),
+
             ],
           ),
         ),
