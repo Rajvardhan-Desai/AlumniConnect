@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../screens/view_profile_page.dart';
 import 'user_avatar.dart';
 
 class UpcomingBirthdaysSection extends StatelessWidget {
@@ -8,15 +10,17 @@ class UpcomingBirthdaysSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Limit to the first 5 birthdays
+    final limitedBirthdays = upcomingBirthdays.take(5).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 20),
         const Row(
           children: [
-            Icon(Icons.cake, color: Color(0xff986ae7)),
-            SizedBox(width: 8),
             Text(
-              'Upcoming Birthdays',
+              'Birthdays',
               style: TextStyle(
                 fontSize: 20.0,
                 fontWeight: FontWeight.bold,
@@ -25,43 +29,89 @@ class UpcomingBirthdaysSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        ...upcomingBirthdays.map((birthday) => BirthdayCard(
+        ...limitedBirthdays.map((birthday) {
+          DateTime dob = DateFormat('dd/MM/yyyy').parse(birthday['dob']);
+          DateTime nextBirthday = DateTime(DateTime.now().year, dob.month, dob.day);
+          if (nextBirthday.isBefore(DateTime.now())) {
+            nextBirthday = DateTime(DateTime.now().year + 1, dob.month, dob.day);
+          }
+          int daysLeft = nextBirthday.difference(DateTime.now()).inDays;
+
+          return BirthdayCard(
             name: birthday['name'],
             birthday: birthday['dob'],
+            daysLeft: daysLeft,
+            isToday: daysLeft == 0,
             imageUrl: birthday['imageUrl'],
-            blurHash: birthday['blurHash'])),
+            blurHash: birthday['blurHash'],
+            userProfile: birthday,  // Passing the entire user profile
+          );
+        })
       ],
     );
   }
 }
 
+
+
 class BirthdayCard extends StatelessWidget {
   final String name;
   final String birthday;
+  final int daysLeft;
+  final bool isToday;
   final String? imageUrl;
   final String? blurHash;
+  final Map<String, dynamic> userProfile;
 
   const BirthdayCard({
     super.key,
     required this.name,
     required this.birthday,
+    required this.daysLeft,
+    required this.isToday,
     this.imageUrl,
     this.blurHash,
+    required this.userProfile,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
+      elevation: isToday ? 8 : 4,  // Highlight today's birthday with higher elevation
+      color: isToday ? Colors.purple[200] : null,  // Special color for today's birthday
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
         leading: UserAvatar(imageUrl: imageUrl, blurHash: blurHash),
-        title: Text(name),
-        subtitle: Text('Birthday: $birthday'),
-        onTap: () => {},
+        title: Text(
+          name,
+          style: TextStyle(
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+            fontSize: isToday ? 18 : 16,
+          ),
+        ),
+        subtitle: Text(
+          isToday
+              ? '🎉 Today is the birthday!'
+              : 'Birthday: $birthday\nDays left: $daysLeft',
+          style: TextStyle(
+            fontSize: isToday ? 14 : 12,
+            color: isToday ? Colors.white : Colors.black54,
+          ),
+        ),
+        onTap: () {
+          // Navigate to the profile page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ViewProfilePage(userProfile: userProfile),
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+
