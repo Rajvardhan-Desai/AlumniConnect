@@ -113,15 +113,19 @@ class SearchPageState extends State<SearchPage> {
           .child('alumni')
           .orderByChild('course')
           .equalTo(widget.currentCourse)
-          .limitToFirst(_pageSize)
           .get();
 
-      final results = _processSnapshot(snapshot);
+      final List<Map<dynamic, dynamic>> filteredResults = _processSnapshot(snapshot)
+          .where((alumni) => alumni['year'] == widget.currentYear)
+          .toList();
 
       if (mounted) {
         setState(() {
-          _suggestedResults = results;
-          _hasMore = snapshot.children.length == _pageSize;
+          _suggestedResults = filteredResults.take(_pageSize).toList();
+          _hasMore = filteredResults.length > _pageSize;
+          if (_hasMore) {
+            _lastKey = filteredResults[_pageSize - 1]['uid'];
+          }
         });
       }
     } catch (error) {
@@ -135,6 +139,7 @@ class SearchPageState extends State<SearchPage> {
       }
     }
   }
+
 
   List<Map<dynamic, dynamic>> _processSnapshot(DataSnapshot snapshot) {
     final results = <Map<dynamic, dynamic>>[];
@@ -216,6 +221,7 @@ class SearchPageState extends State<SearchPage> {
 
   Future<void> _fetchMoreSuggestedAlumni() async {
     if (!_hasMore || _lastKey == null) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -226,15 +232,19 @@ class SearchPageState extends State<SearchPage> {
           .orderByChild('course')
           .equalTo(widget.currentCourse)
           .startAfter(_lastKey)
-          .limitToFirst(_pageSize)
           .get();
 
-      final results = _processSnapshot(snapshot);
+      final List<Map<dynamic, dynamic>> filteredResults = _processSnapshot(snapshot)
+          .where((alumni) => alumni['year'] == widget.currentYear)
+          .toList();
 
       if (mounted) {
         setState(() {
-          _suggestedResults.addAll(results);
-          _hasMore = snapshot.children.length == _pageSize;
+          _suggestedResults.addAll(filteredResults.take(_pageSize).toList());
+          _hasMore = filteredResults.length > _pageSize;
+          if (_hasMore) {
+            _lastKey = filteredResults[_pageSize - 1]['uid'];
+          }
         });
       }
     } catch (error) {
