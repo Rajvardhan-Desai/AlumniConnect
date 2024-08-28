@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,11 +31,15 @@ class SearchPageState extends State<SearchPage> {
   List<String>? _selectedCities;
   List<String>? _selectedDesignations;
   bool _hasSearched = false;
-  bool _isLoading = false;
+  bool _isLoadingCities = false;
+  bool _isLoadingDesignations = false;
   bool _hasMore = true;
-  bool _filtersApplied = false; // Added to track if filters are applied
+  bool _filtersApplied = false;
+  bool _filtersFetched = false;
   final int _pageSize = 10;
   String? _lastKey;
+
+  final GlobalKey _tooltipKey = GlobalKey(); // Define the tooltip key
 
   final List<String> _courses = [
     'Civil & Rural Engineering',
@@ -47,77 +52,148 @@ class SearchPageState extends State<SearchPage> {
 
   final List<String> _years = List.generate(
     DateTime.now().year - 1956,
-    (index) => (DateTime.now().year - index).toString(),
+        (index) => (DateTime.now().year - index).toString(),
   );
 
-  List<String> _cities = [];
-  List<String> _designations = [];
-
-  final GlobalKey _tooltipKey = GlobalKey();
+  List<String> _cities = []; // Cached cities
+  List<String> _designations = []; // Cached designations
 
   @override
   void initState() {
     super.initState();
-    _fetchSuggestedAlumni();
-    _fetchFilterOptions();
+    _fetchFilterOptions(); // Fetch filters on page init
+    _fetchSuggestedAlumni(); // Fetch suggested alumni on screen init
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _filtersFetched = false; // Reset when navigating away
+    super.dispose();
+  }
+
+  void _showFilterSheet(BuildContext context) {
+    _openFilterSheet(context);
+  }
+
+
   Future<void> _fetchFilterOptions() async {
+    if (_filtersFetched) return; // Return immediately if already fetched
+
     setState(() {
-      _isLoading = true;
+      _isLoadingCities = true;
+      _isLoadingDesignations = true;
     });
+
     try {
-      final cities = await _fetchUniqueFilterOptions('city');
-      final designations = await _fetchUniqueFilterOptions('designation');
+      // Fetch cities
+      final citiesSnapshot = await _database.child('filters/cities').get();
+      final designationsSnapshot = await _database.child('filters/designations').get();
+
+      final citiesSet = <String>{};
+      final designationsSet = <String>{};
+
+      if (citiesSnapshot.exists) {
+        for (var child in citiesSnapshot.children) {
+          citiesSet.add(child.value as String);
+        }
+      }
+
+      if (designationsSnapshot.exists) {
+        for (var child in designationsSnapshot.children) {
+          designationsSet.add(child.value as String);
+        }
+      }
 
       if (mounted) {
         setState(() {
-          _cities = cities.toList();
-          _designations = designations.toList();
+          _cities = citiesSet.toList(); // Cache cities
+          _designations = designationsSet.toList(); // Cache designations
+          _filtersFetched = true; // Mark filters as fetched
         });
       }
     } catch (error) {
-      _showErrorDialog(
-          'Error fetching filter options. Please try again later.');
+      _logError('Error fetching filter options', error);
+      _showErrorDialog('Error fetching filter options. Please try again later.');
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingCities = false;
+          _isLoadingDesignations = false;
         });
       }
     }
   }
 
-  Future<Set<String>> _fetchUniqueFilterOptions(String childName) async {
-    final snapshot =
-        await _database.child('alumni').orderByChild(childName).get();
-    final options = <String>{};
 
-    if (snapshot.exists) {
-      for (var child in snapshot.children) {
-        final Map<dynamic, dynamic> data =
-            Map<dynamic, dynamic>.from(child.value as Map);
-        options.add(data[childName] ?? 'Unknown');
+  void _openFilterSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return FilterSheet(
+          courses: _courses,
+          years: _years,
+          cities: _cities,
+          designations: _designations,
+          selectedCourses: _selectedCourses,
+          selectedYears: _selectedYears,
+          selectedCities: _selectedCities,
+          selectedDesignations: _selectedDesignations,
+          onCourseChanged: (List<String> value) {
+            setState(() {
+              _selectedCourses = value;
+            });
+          },
+          onYearChanged: (List<String> value) {
+            setState(() {
+              _selectedYears = value;
+            });
+          },
+          onCityChanged: (List<String> value) {
+            setState(() {
+              _selectedCities = value;
+            });
+          },
+          onDesignationChanged: (List<String> value) {
+            setState(() {
+              _selectedDesignations = value;
+            });
+          },
+          onApply: () => _applyFilters(
+              _selectedCourses ?? [],
+              _selectedYears ?? [],
+              _selectedCities ?? [],
+              _selectedDesignations ?? []),
+          onClear: _clearSearch,
+          isLoadingCities: _isLoadingCities,
+          isLoadingDesignations: _isLoadingDesignations,
+        );
+      },
+    ).whenComplete(() {
+      if (!_filtersApplied) {
+        setState(() {
+          _filtersFetched = false; // Reset fetched flag if filters are not applied
+        });
       }
-    }
-
-    return options;
+    });
   }
 
   Future<void> _fetchSuggestedAlumni() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingCities = true;
+      _isLoadingDesignations = true;
     });
     try {
       final snapshot = await _database
           .child('alumni')
-          .orderByChild('course')
-          .equalTo(widget.currentCourse)
+          .child(widget.currentCourse)
+          .orderByChild('year')
+          .equalTo(widget.currentYear)
           .get();
 
-      final List<Map<dynamic, dynamic>> filteredResults = _processSnapshot(snapshot)
-          .where((alumni) => alumni['year'] == widget.currentYear)
-          .toList();
+      final List<Map<dynamic, dynamic>> filteredResults =
+      _processSnapshot(snapshot);
 
       if (mounted) {
         setState(() {
@@ -125,21 +201,25 @@ class SearchPageState extends State<SearchPage> {
           _hasMore = filteredResults.length > _pageSize;
           if (_hasMore) {
             _lastKey = filteredResults[_pageSize - 1]['uid'];
+          } else {
+            _hasMore = false;
+            _lastKey = null;
           }
         });
       }
     } catch (error) {
+      _logError('Error fetching suggested alumni', error);
       _showErrorDialog(
           'Error fetching suggested alumni. Please try again later.');
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingCities = false;
+          _isLoadingDesignations = false;
         });
       }
     }
   }
-
 
   List<Map<dynamic, dynamic>> _processSnapshot(DataSnapshot snapshot) {
     final results = <Map<dynamic, dynamic>>[];
@@ -147,7 +227,7 @@ class SearchPageState extends State<SearchPage> {
     if (snapshot.exists) {
       for (var child in snapshot.children) {
         final Map<dynamic, dynamic> data =
-            Map<dynamic, dynamic>.from(child.value as Map);
+        Map<dynamic, dynamic>.from(child.value as Map);
         if (data['uid'] != _currentUser?.uid) {
           results.add(data);
           _lastKey = child.key;
@@ -161,27 +241,24 @@ class SearchPageState extends State<SearchPage> {
   Future<void> _searchAlumni(String query) async {
     setState(() {
       _hasSearched = true;
-      _isLoading = true;
+      _isLoadingCities = true;
+      _isLoadingDesignations = true;
     });
 
     List<Map<dynamic, dynamic>> results = [];
 
     try {
-      // If no courses are selected, fetch all alumni records
-      if (_selectedCourses == null || _selectedCourses!.isEmpty) {
-        final snapshot = await _database.child('alumni').get();
-        results = _processSnapshot(snapshot);
-      } else {
-        // Fetch records for each selected course
-        for (String course in _selectedCourses!) {
-          final snapshot = await _database
-              .child('alumni')
-              .orderByChild('course')
-              .equalTo(course)
-              .get();
+      // If no courses are selected, fetch alumni from all courses
+      final List<String> searchCourses =
+      _selectedCourses == null || _selectedCourses!.isEmpty
+          ? _courses
+          : _selectedCourses!;
 
-          results.addAll(_processSnapshot(snapshot));
-        }
+      // Fetch records from each selected course node
+      for (String course in searchCourses) {
+        final snapshot = await _database.child('alumni').child(course).get();
+
+        results.addAll(_processSnapshot(snapshot));
       }
 
       // Apply client-side filters after fetching
@@ -209,11 +286,13 @@ class SearchPageState extends State<SearchPage> {
         });
       }
     } catch (error) {
+      _logError('Error searching alumni', error);
       _showErrorDialog('Error searching alumni. Please try again later.');
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingCities = false;
+          _isLoadingDesignations = false;
         });
       }
     }
@@ -223,7 +302,8 @@ class SearchPageState extends State<SearchPage> {
     if (!_hasMore || _lastKey == null) return;
 
     setState(() {
-      _isLoading = true;
+      _isLoadingCities = true;
+      _isLoadingDesignations = true;
     });
 
     try {
@@ -234,7 +314,8 @@ class SearchPageState extends State<SearchPage> {
           .startAfter(_lastKey)
           .get();
 
-      final List<Map<dynamic, dynamic>> filteredResults = _processSnapshot(snapshot)
+      final List<Map<dynamic, dynamic>> filteredResults =
+      _processSnapshot(snapshot)
           .where((alumni) => alumni['year'] == widget.currentYear)
           .toList();
 
@@ -244,16 +325,21 @@ class SearchPageState extends State<SearchPage> {
           _hasMore = filteredResults.length > _pageSize;
           if (_hasMore) {
             _lastKey = filteredResults[_pageSize - 1]['uid'];
+          } else {
+            _hasMore = false;
+            _lastKey = null;
           }
         });
       }
     } catch (error) {
+      _logError('Error fetching more suggested alumni', error);
       _showErrorDialog(
           'Error fetching more suggested alumni. Please try again later.');
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingCities = false;
+          _isLoadingDesignations = false;
         });
       }
     }
@@ -266,9 +352,8 @@ class SearchPageState extends State<SearchPage> {
       _selectedYears = years;
       _selectedCities = cities;
       _selectedDesignations = designations;
-      _filtersApplied = true; // Mark that filters have been applied
+      _filtersApplied = true;
     });
-
 
     _searchAlumni(_searchController.text.trim());
 
@@ -293,51 +378,6 @@ class SearchPageState extends State<SearchPage> {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     }
-  }
-
-  void _showFilterSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return FilterSheet(
-          courses: _courses,
-          years: _years,
-          cities: _cities,
-          designations: _designations,
-          selectedCourses: _selectedCourses,
-          selectedYears: _selectedYears,
-          selectedCities: _selectedCities,
-          selectedDesignations: _selectedDesignations,
-          onCourseChanged: (value) {
-            setState(() {
-              _selectedCourses = value;
-            });
-          },
-          onYearChanged: (value) {
-            setState(() {
-              _selectedYears = value;
-            });
-          },
-          onCityChanged: (value) {
-            setState(() {
-              _selectedCities = value;
-            });
-          },
-          onDesignationChanged: (value) {
-            setState(() {
-              _selectedDesignations = value;
-            });
-          },
-          onApply: () => _applyFilters(
-              _selectedCourses ?? [],
-              _selectedYears ?? [],
-              _selectedCities ?? [],
-              _selectedDesignations ?? []),
-          onClear: _clearSearch,
-        );
-      },
-    );
   }
 
   void _showErrorDialog(String message, [String? detailedMessage]) {
@@ -373,6 +413,12 @@ class SearchPageState extends State<SearchPage> {
     );
   }
 
+  void _logError(String message, Object error) {
+    // Replace with your preferred logging method
+    if (kDebugMode) {
+      print('$message: $error');
+    }
+  }
 
   Widget _buildShimmerPlaceholder() {
     return Shimmer.fromColors(
@@ -421,12 +467,6 @@ class SearchPageState extends State<SearchPage> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
@@ -445,12 +485,11 @@ class SearchPageState extends State<SearchPage> {
                     const Text(
                       "Results",
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8.0),
                     Wrap(
-                      alignment: WrapAlignment
-                          .start, // Align chips to the start (left)
+                      alignment: WrapAlignment.start,
                       spacing: 8.0,
                       runSpacing: 4.0,
                       children: _buildFilterChips(),
@@ -460,11 +499,11 @@ class SearchPageState extends State<SearchPage> {
                 ),
               ),
             Expanded(
-              child: _isLoading
+              child: _isLoadingCities || _isLoadingDesignations
                   ? _buildShimmerPlaceholder()
                   : _hasSearched
-                      ? _buildSearchResults()
-                      : _buildSuggestedResults(),
+                  ? _buildSearchResults()
+                  : _buildSuggestedResults(),
             ),
           ],
         ),
@@ -478,26 +517,11 @@ class SearchPageState extends State<SearchPage> {
               _filtersApplied ? Icons.filter_alt : Icons.filter_alt_outlined,
               color: const Color(0xff986ae7),
             ),
-            
           ],
         ),
       ),
     );
   }
-
-  final Map<String, Color> _filterColors = {
-    'Course': const Color(0xffdfd8fd),
-    'Graduation Year': const Color(0xfffdd0ec),
-    'City': const Color(0xffffd2cc),
-    'Designation': const Color(0xffd3f1a7),
-  };
-
-  final Map<String, Color> _textColors = {
-    'Course': const Color(0xff5b47bf),
-    'Graduation Year': const Color(0xffd63f9e),
-    'City': const Color(0xffef840c),
-    'Designation': const Color(0xff528105),
-  };
 
   List<Widget> _buildFilterChips() {
     final chips = <Widget>[];
@@ -508,12 +532,11 @@ class SearchPageState extends State<SearchPage> {
           label: Text(
             course,
             style: TextStyle(
-                color: _textColors['Course'],
-                fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
+                color: _textColors['Course'], fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
           ),
           backgroundColor:
-              _filterColors['Course'], // Use background color for Course
+          _filterColors['Course'], // Use background color for Course
           deleteIconColor: _textColors['Course'],
           onDeleted: () {
             setState(() {
@@ -533,10 +556,10 @@ class SearchPageState extends State<SearchPage> {
             style: TextStyle(
                 color: _textColors['Graduation Year'],
                 fontWeight: FontWeight.bold), // Use darker text color
-                overflow: TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
           ),
           backgroundColor: _filterColors[
-              'Graduation Year'], // Use background color for Graduation Year
+          'Graduation Year'], // Use background color for Graduation Year
           deleteIconColor: _textColors['Graduation Year'],
           onDeleted: () {
             setState(() {
@@ -556,10 +579,10 @@ class SearchPageState extends State<SearchPage> {
             style: TextStyle(
                 color: _textColors['City'],
                 fontWeight: FontWeight.bold), // Use darker text color
-                overflow: TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
           ),
           backgroundColor:
-              _filterColors['City'], // Use background color for City
+          _filterColors['City'], // Use background color for City
           deleteIconColor: _textColors['City'],
           onDeleted: () {
             setState(() {
@@ -577,12 +600,11 @@ class SearchPageState extends State<SearchPage> {
           label: Text(
             designation,
             style: TextStyle(
-                color: _textColors['Designation'],
-                fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,// Use darker text color
+                color: _textColors['Designation'], fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis, // Use darker text color
           ),
           backgroundColor: _filterColors[
-              'Designation'], // Use background color for Designation
+          'Designation'], // Use background color for Designation
           deleteIconColor: _textColors['Designation'],
           onDeleted: () {
             setState(() {
@@ -718,6 +740,19 @@ class SearchPageState extends State<SearchPage> {
     );
   }
 
+  final Map<String, Color> _filterColors = {
+    'Course': const Color(0xffdfd8fd),
+    'Graduation Year': const Color(0xfffdd0ec),
+    'City': const Color(0xffffd2cc),
+    'Designation': const Color(0xffd3f1a7),
+  };
+
+  final Map<String, Color> _textColors = {
+    'Course': const Color(0xff5b47bf),
+    'Graduation Year': const Color(0xffd63f9e),
+    'City': const Color(0xffef840c),
+    'Designation': const Color(0xff528105),
+  };
 }
 
 class FilterSheet extends StatefulWidget {
@@ -735,6 +770,8 @@ class FilterSheet extends StatefulWidget {
   final ValueChanged<List<String>> onDesignationChanged;
   final VoidCallback onApply;
   final VoidCallback onClear;
+  final bool isLoadingCities;
+  final bool isLoadingDesignations;
 
   const FilterSheet({
     super.key,
@@ -752,6 +789,8 @@ class FilterSheet extends StatefulWidget {
     required this.onDesignationChanged,
     required this.onApply,
     required this.onClear,
+    required this.isLoadingCities,
+    required this.isLoadingDesignations,
   });
 
   @override
@@ -862,13 +901,12 @@ class FilterSheetState extends State<FilterSheet> {
                         ),
                         trailing: _selectedOptions[category]!.isNotEmpty
                             ? Text(
-                                '${_selectedOptions[category]!.length}',
-                                style: const TextStyle(
-                                    color: Color(0xff986ae7), fontSize: 16),
-                              )
+                          '${_selectedOptions[category]!.length}',
+                          style: const TextStyle(
+                              color: Color(0xff986ae7), fontSize: 16),
+                        )
                             : null,
                         selected: _selectedCategory == category,
-                        // Set the background color for selected tile
                         onTap: () {
                           setState(() {
                             _selectedCategory = category;
@@ -881,26 +919,7 @@ class FilterSheetState extends State<FilterSheet> {
                 const Divider(),
                 // Filter Options
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(4.0),
-                    children: _filterOptions[_selectedCategory]!.map((option) {
-                      return CheckboxListTile(
-                        title: Text(option),
-                        value: _selectedOptions[_selectedCategory]!
-                            .contains(option),
-                        onChanged: (bool? value) {
-                          setState(() {
-                            if (value == true) {
-                              _selectedOptions[_selectedCategory]!.add(option);
-                            } else {
-                              _selectedOptions[_selectedCategory]!
-                                  .remove(option);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
+                  child: _buildFilterOptions(_selectedCategory),
                 ),
               ],
             ),
@@ -921,7 +940,10 @@ class FilterSheetState extends State<FilterSheet> {
                     foregroundColor: const Color(0xffff1f1f),
                     side: const BorderSide(color: Color(0xffff7777)),
                   ),
-                  child: const Text('Clear Filters',style: TextStyle(fontWeight: FontWeight.bold),),
+                  child: const Text(
+                    'Clear Filters',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: _selectedFilterCount() > 0 ? _applyFilters : null,
@@ -931,7 +953,10 @@ class FilterSheetState extends State<FilterSheet> {
                         : Colors.grey,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Show Results',style: TextStyle(fontWeight: FontWeight.bold),),
+                  child: const Text(
+                    'Show Results',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -939,6 +964,61 @@ class FilterSheetState extends State<FilterSheet> {
         ],
       ),
     );
+  }
+
+  Widget _buildFilterOptions(String category) {
+    if (widget.isLoadingCities && category == 'City') {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: ListView.builder(
+          itemCount: 5,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Container(
+                height: 20.0,
+                color: Colors.white,
+              ),
+            );
+          },
+        ),
+      );
+    } else if (widget.isLoadingDesignations && category == 'Designation') {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: ListView.builder(
+          itemCount: 5,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Container(
+                height: 20.0,
+                color: Colors.white,
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      return ListView(
+        padding: const EdgeInsets.all(4.0),
+        children: _filterOptions[category]!.map((option) {
+          return CheckboxListTile(
+            title: Text(option),
+            value: _selectedOptions[category]!.contains(option),
+            onChanged: (bool? value) {
+              setState(() {
+                if (value == true) {
+                  _selectedOptions[category]!.add(option);
+                } else {
+                  _selectedOptions[category]!.remove(option);
+                }
+              });
+            },
+          );
+        }).toList(),
+      );
+    }
   }
 }
 
@@ -951,7 +1031,7 @@ class AlumniListTile extends StatelessWidget {
     super.key,
     required this.result,
     required this.navigateToProfile,
-    required this.index,  // Make sure this parameter is provided when constructing
+    required this.index, // Make sure this parameter is provided when constructing
   });
 
   @override
@@ -989,5 +1069,3 @@ class AlumniListTile extends StatelessWidget {
     );
   }
 }
-
-
