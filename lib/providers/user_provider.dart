@@ -19,20 +19,38 @@ class UserNotifier extends StateNotifier<UserState> {
       if (user == null) {
         throw Exception('User not signed in');
       }
-      final snapshot = await _database.child('alumni').child(user.uid).get();
+
+      // Fetch the user's course from the general path
+      final snapshot = await _database.child('alumni').get();
+
       if (snapshot.exists) {
-        final userData = Map<String, dynamic>.from(snapshot.value as Map);
-        state = state.copyWith(
-          isLoading: false,
-          name: userData['name'] ?? 'User',
-          email: userData['email'] ?? 'No email',
-          imageUrl: userData['imageUrl'],
-          blurHash: userData['blurHash'],
-          course: userData['course'] ?? 'Unknown course',
-          year: userData['year'] ?? 'Unknown year',
-        );
+        bool userFound = false;
+        for (var courseNode in snapshot.children) {
+          final courseKey = courseNode.key;
+          final userSnapshot = await _database.child('alumni').child(courseKey!).child(user.uid).get();
+
+          if (userSnapshot.exists) {
+            final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
+            state = state.copyWith(
+              isLoading: false,
+              name: userData['name'] ?? 'User',
+              email: userData['email'] ?? 'No email',
+              imageUrl: userData['imageUrl'],
+              blurHash: userData['blurHash'],
+              course: userData['course'] ?? 'Unknown course',
+              year: userData['year'] ?? 'Unknown year',
+              error: null,
+            );
+            userFound = true;
+            break;
+          }
+        }
+
+        if (!userFound) {
+          throw Exception('User data not found');
+        }
       } else {
-        throw Exception('User data not found');
+        throw Exception('No alumni data found');
       }
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
