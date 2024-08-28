@@ -90,14 +90,33 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       final User? user = auth.currentUser;
 
       if (user != null) {
-        DatabaseReference dbRef =
-        FirebaseDatabase.instance.ref('alumni/${user.uid}');
-        final snapshot = await dbRef.get();
+        DatabaseReference dbRef = FirebaseDatabase.instance.ref('alumni');
+        final snapshot = await dbRef.once();
 
-        if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
-          _populateUserProfile(data);
-          _storeInitialValues(data);
+        if (snapshot.snapshot.exists) {
+          bool userFound = false;
+          for (var courseNode in snapshot.snapshot.children) {
+            final courseKey = courseNode.key;
+            final userSnapshot = courseNode.child(user.uid);
+
+            if (userSnapshot.exists) {
+              final data = userSnapshot.value as Map<dynamic, dynamic>;
+              _populateUserProfile(data);
+              _storeInitialValues(data);
+              _selectedCourse = courseKey;
+              userFound = true;
+              break;
+            }
+          }
+
+          if (!userFound) {
+            throw Exception('User profile not found.');
+          }
+        } else {
+          if (mounted) {
+            showSnackBar(
+                scaffoldMessenger, "No alumni data found.", Colors.red);
+          }
         }
       } else {
         if (mounted) {
@@ -228,12 +247,14 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       final User? user = auth.currentUser;
 
       if (user != null && _existingImageUrl != null) {
-        final storageRef = FirebaseStorage.instance.refFromURL(_existingImageUrl!);
+        final storageRef =
+            FirebaseStorage.instance.refFromURL(_existingImageUrl!);
         await storageRef.delete();
 
         // Clear the image from cache
         await CachedNetworkImage.evictFromCache(_existingImageUrl!);
-        await CachedNetworkImage.evictFromCache('${_existingImageUrl!}?t=1'); // Ensure complete cache clear
+        await CachedNetworkImage.evictFromCache(
+            '${_existingImageUrl!}?t=1'); // Ensure complete cache clear
 
         setState(() {
           _existingImageUrl = null;
@@ -261,7 +282,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
 
   List<String> _generateYears() {
     return List<String>.generate(DateTime.now().year - 1956,
-            (index) => (DateTime.now().year - index).toString());
+        (index) => (DateTime.now().year - index).toString());
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -332,7 +353,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
             );
           }
         } else {
@@ -356,7 +377,6 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-
   Future<String?> _uploadImage(String uid) async {
     final storageRef = FirebaseStorage.instance
         .ref()
@@ -370,13 +390,37 @@ class EditProfileScreenState extends State<EditProfileScreen> {
     final imageBytes = await image.readAsBytes();
     final decodedImage = img.decodeImage(imageBytes);
     return blurhash_dart.BlurHash.encode(decodedImage!,
-        numCompX: 4, numCompY: 4)
+            numCompX: 4, numCompY: 4)
         .hash;
   }
 
   Future<void> _updateUserProfile(
       String uid, String? imageUrl, String? blurHash) async {
-    DatabaseReference dbRef = FirebaseDatabase.instance.ref('alumni/$uid');
+    if (_selectedCourse == null) {
+      throw Exception("User's course is not selected.");
+    }
+
+    // Check if the course has changed
+    if (_selectedCourse != _initialValues['course']) {
+      final oldCourse = _initialValues['course'];
+      final newCourse = _selectedCourse;
+
+      DatabaseReference oldCourseRef =
+      FirebaseDatabase.instance.ref('alumni/$oldCourse/$uid');
+      DatabaseReference newCourseRef =
+      FirebaseDatabase.instance.ref('alumni/$newCourse/$uid');
+
+      // Move data to new course node
+      final snapshot = await oldCourseRef.get();
+      if (snapshot.exists) {
+        await newCourseRef.set(snapshot.value); // Copy data to new node
+        await oldCourseRef.remove(); // Delete old node
+      }
+    }
+
+    // Update user profile data
+    DatabaseReference dbRef =
+    FirebaseDatabase.instance.ref('alumni/$_selectedCourse/$uid');
     await dbRef.update({
       'name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
@@ -391,7 +435,25 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       'imageUrl': imageUrl,
       'blurHash': blurHash,
     });
+
+    // Update filters node
+    await _updateFilters(uid);
+
+    // Update initial values to reflect the latest data after update
+    _initialValues['course'] = _selectedCourse;
   }
+
+  Future<void> _updateFilters(String uid) async {
+    DatabaseReference citiesRef =
+    FirebaseDatabase.instance.ref('filters/cities/$uid');
+    DatabaseReference designationsRef =
+    FirebaseDatabase.instance.ref('filters/designations/$uid');
+
+    await citiesRef.set(_cityController.text.trim());
+    await designationsRef.set(_designationController.text.trim());
+  }
+
+
 
   void _showImageSourceActionSheet() {
     showModalBottomSheet(
@@ -492,144 +554,144 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                children: <Widget>[
-                  ProfileImage(
-                    image: _image,
-                    existingImageUrl: _existingImageUrl,
-                    blurHash: _blurHash,
-                    pickImage: _pickImage,
-                    removeImage: _removeImage,
-                    showImageSourceActionSheet:
-                    _showImageSourceActionSheet,
-                  ),
-                  const SizedBox(height: 20.0),
-                  CustomTextFormField(
-                    controller: _nameController,
-                    labelText: 'Full Name',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: _emailValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _phoneController,
-                    labelText: 'Phone Number',
-                    keyboardType: TextInputType.phone,
-                    validator: _phoneValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _dobController,
-                    labelText: 'Date of Birth',
-                    keyboardType: TextInputType.datetime,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
-                    ],
-                    validator: _dateValidator,
-                    readOnly: true,
-                    onTap: () {
-                      FocusScope.of(context).requestFocus(FocusNode());
-                      _selectDate(context);
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _organizationController,
-                    labelText: 'Organization',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _designationController,
-                    labelText: 'Designation',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _cityController,
-                    labelText: 'City',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomTextFormField(
-                    controller: _addressController,
-                    labelText: 'Address',
-                    validator: _requiredValidator,
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomDropdownFormField(
-                    labelText: 'Graduation Year',
-                    value: _selectedYear,
-                    items: _generateYears(),
-                    validator: _requiredValidator,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedYear = value;
-                      });
-                      _checkForChanges();
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  CustomDropdownFormField(
-                    labelText: 'Course',
-                    value: _selectedCourse,
-                    items: const [
-                      'Civil & Rural Engineering',
-                      'Information Technology',
-                      'Computer Engineering',
-                      'Electronics & Tele-communication Engineering',
-                      'Electrical Engineering',
-                      'Mechanical Engineering',
-                    ],
-                    validator: _requiredValidator,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCourse = value;
-                      });
-                      _checkForChanges();
-                    },
-                  ),
-                  const SizedBox(height: 30.0),
-                  _isButtonLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                    onPressed: _isButtonLoading || !_isChanged
-                        ? null
-                        : () => _updateProfile(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      minimumSize: const Size(double.infinity, 50),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: <Widget>[
+                        ProfileImage(
+                          image: _image,
+                          existingImageUrl: _existingImageUrl,
+                          blurHash: _blurHash,
+                          pickImage: _pickImage,
+                          removeImage: _removeImage,
+                          showImageSourceActionSheet:
+                              _showImageSourceActionSheet,
+                        ),
+                        const SizedBox(height: 20.0),
+                        CustomTextFormField(
+                          controller: _nameController,
+                          labelText: 'Full Name',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _emailController,
+                          labelText: 'Email',
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _emailValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _phoneController,
+                          labelText: 'Phone Number',
+                          keyboardType: TextInputType.phone,
+                          validator: _phoneValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _dobController,
+                          labelText: 'Date of Birth',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$')),
+                          ],
+                          validator: _dateValidator,
+                          readOnly: true,
+                          onTap: () {
+                            FocusScope.of(context).requestFocus(FocusNode());
+                            _selectDate(context);
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _organizationController,
+                          labelText: 'Organization',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _designationController,
+                          labelText: 'Designation',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _cityController,
+                          labelText: 'City',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomTextFormField(
+                          controller: _addressController,
+                          labelText: 'Address',
+                          validator: _requiredValidator,
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomDropdownFormField(
+                          labelText: 'Graduation Year',
+                          value: _selectedYear,
+                          items: _generateYears(),
+                          validator: _requiredValidator,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedYear = value;
+                            });
+                            _checkForChanges();
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        CustomDropdownFormField(
+                          labelText: 'Course',
+                          value: _selectedCourse,
+                          items: const [
+                            'Civil & Rural Engineering',
+                            'Information Technology',
+                            'Computer Engineering',
+                            'Electronics & Tele-communication Engineering',
+                            'Electrical Engineering',
+                            'Mechanical Engineering',
+                          ],
+                          validator: _requiredValidator,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCourse = value;
+                            });
+                            _checkForChanges();
+                          },
+                        ),
+                        const SizedBox(height: 30.0),
+                        _isButtonLoading
+                            ? const CircularProgressIndicator()
+                            : ElevatedButton(
+                                onPressed: _isButtonLoading || !_isChanged
+                                    ? null
+                                    : () => _updateProfile(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.0),
+                                  ),
+                                  minimumSize: const Size(double.infinity, 50),
+                                ),
+                                child: const Text(
+                                  'Update Profile',
+                                  style: TextStyle(
+                                    fontSize: 18.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                        const SizedBox(height: 30.0)
+                      ],
                     ),
-                    child: const Text(
-                      'Update Profile',
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
-                  const SizedBox(height: 30.0)
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -699,7 +761,7 @@ class ProfileImage extends StatelessWidget {
       children: [
         Container(
           margin:
-          const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
+              const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
           child: CircleAvatar(
             key: ValueKey(imageUrl), // Use a unique key to force rebuild
             radius: 60,
@@ -707,43 +769,43 @@ class ProfileImage extends StatelessWidget {
             child: ClipOval(
               child: image != null
                   ? Image.file(
-                image!,
-                fit: BoxFit.cover,
-                width: 120,
-                height: 120,
-              )
+                      image!,
+                      fit: BoxFit.cover,
+                      width: 120,
+                      height: 120,
+                    )
                   : (imageUrl != null
-                  ? Stack(
-                children: [
-                  BlurHash(
-                    hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                    imageFit: BoxFit.cover,
-                    decodingWidth: 200,
-                    decodingHeight: 200,
-                  ),
-                  CachedNetworkImage(
-                    key: ValueKey(
-                        imageUrl), // Ensure cache-busting by using a unique key
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    width: 200,
-                    height: 200,
-                    placeholder: (context, url) => BlurHash(
-                      hash:
-                      blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                    ),
-                    errorWidget: (context, url, error) => BlurHash(
-                      hash:
-                      blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
-                    ),
-                  ),
-                ],
-              )
-                  : const Icon(
-                Icons.person,
-                size: 60,
-                color: Colors.grey,
-              )),
+                      ? Stack(
+                          children: [
+                            BlurHash(
+                              hash: blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                              imageFit: BoxFit.cover,
+                              decodingWidth: 200,
+                              decodingHeight: 200,
+                            ),
+                            CachedNetworkImage(
+                              key: ValueKey(
+                                  imageUrl), // Ensure cache-busting by using a unique key
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              width: 200,
+                              height: 200,
+                              placeholder: (context, url) => BlurHash(
+                                hash:
+                                    blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                              ),
+                              errorWidget: (context, url, error) => BlurHash(
+                                hash:
+                                    blurHash ?? 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Colors.grey,
+                        )),
             ),
           ),
         ),
