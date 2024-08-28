@@ -35,6 +35,21 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
 
   static const int maxFileSize = 2 * 1024 * 1024; // 2MB in bytes
 
+  @override
+  void initState() {
+    super.initState();
+    _initializeUserEmail();
+  }
+
+  Future<void> _initializeUserEmail() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _emailController.text = user.email ?? '';
+      });
+    }
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final pickedFile = await ImagePicker().pickImage(source: source);
@@ -48,7 +63,8 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
           _image = file;
         });
       } else {
-        showSnackBar(scaffoldMessenger, "Image size should be less than 2MB.", Colors.red);
+        showSnackBar(scaffoldMessenger, "Image size should be less than 2MB.",
+            Colors.red);
       }
     } else {
       showSnackBar(scaffoldMessenger, "No image selected.", Colors.red);
@@ -63,20 +79,21 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
 
   List<String> _getYears() {
     int currentYear = DateTime.now().year;
-    return List<String>.generate(currentYear - 1956, (index) => (currentYear - index).toString());
+    return List<String>.generate(
+        currentYear - 1956, (index) => (currentYear - index).toString());
   }
 
   Future<void> _selectDate(BuildContext context) async {
     DateTime now = DateTime.now();
-    DateTime eighteenYearsAgo = DateTime(now.year - 18, now.month, now.day);
+    DateTime seventeenYearsAgo = DateTime(now.year - 17, now.month, now.day);
 
     DateTime? selectedDate = await showDatePicker(
       fieldLabelText: "Enter Date (DD/MM/YYYY)",
       context: context,
       firstDate: DateTime(1924),
-      lastDate: eighteenYearsAgo,
+      lastDate: seventeenYearsAgo,
       initialEntryMode: DatePickerEntryMode.input,
-      initialDate: eighteenYearsAgo,
+      initialDate: seventeenYearsAgo,
       locale: const Locale('en', 'GB'),
     );
 
@@ -102,18 +119,24 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
           String? imageUrl;
           String? blurHash;
           if (_image != null) {
-            final storageRef = FirebaseStorage.instance.ref().child('profile_images').child('${user.uid}.${_image!.path.split('.').last}');
+            final storageRef = FirebaseStorage.instance
+                .ref()
+                .child('profile_images')
+                .child('${user.uid}.${_image!.path.split('.').last}');
             await storageRef.putFile(_image!);
             imageUrl = await storageRef.getDownloadURL();
             // Generate BlurHash
             final imageBytes = await _image!.readAsBytes();
             final decodedImage = img.decodeImage(imageBytes);
-            // final Uint8List uint8List = Uint8List.fromList(imageBytes);
-            blurHash = BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
-            imageUrl = imageUrl.replaceAll('.${imageUrl.split('.').last}', '_200x200.${imageUrl.split('.').last}');
+            blurHash =
+                BlurHash.encode(decodedImage!, numCompX: 4, numCompY: 3).hash;
+            imageUrl = imageUrl.replaceAll('.${imageUrl.split('.').last}',
+                '_200x200.${imageUrl.split('.').last}');
           }
 
-          DatabaseReference dbRef = FirebaseDatabase.instance.ref('alumni/${user.uid}');
+          // Store user profile data
+          DatabaseReference dbRef = FirebaseDatabase.instance
+              .ref('alumni/$_selectedCourse/${user.uid}');
           await dbRef.set({
             'name': _nameController.text.trim(),
             'email': _emailController.text.trim(),
@@ -129,20 +152,38 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
             'blurHash': blurHash,
           });
 
-          showSnackBar(scaffoldMessenger, "Profile created successfully!", Colors.green);
+          // Store the city under the user's UID in the "filters/cities" node
+          DatabaseReference filtersRef =
+              FirebaseDatabase.instance.ref('filters');
+
+          await filtersRef
+              .child('cities')
+              .child(user.uid)
+              .set(_cityController.text.trim());
+
+          // Store the designation under the user's UID in the "filters/designations" node
+          await filtersRef
+              .child('designations')
+              .child(user.uid)
+              .set(_designationController.text.trim());
+
+          showSnackBar(
+              scaffoldMessenger, "Profile created successfully!", Colors.green);
 
           if (mounted) {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
             );
           }
         } else {
-          showSnackBar(scaffoldMessenger, "User not authenticated.", Colors.red);
+          showSnackBar(
+              scaffoldMessenger, "User not authenticated.", Colors.red);
         }
       } catch (e) {
-        showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}", Colors.red);
+        showSnackBar(scaffoldMessenger, "An error occurred: ${e.toString()}",
+            Colors.red);
       } finally {
         if (mounted) {
           setState(() {
@@ -221,7 +262,10 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
     );
   }
 
-  Widget _buildImageOption({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildImageOption(
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -255,27 +299,25 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
                   ),
                   const SizedBox(height: 20.0),
                   CustomTextFormField(
-                    controller: _nameController,
-                    labelText: 'Full Name',
+                    controller: _emailController,
+                    labelText: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                    readOnly: true, // Make the email field read-only
+                    isGrayedOut: false, // Make the email field grayed out
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your full name';
+                        return 'Please enter your email';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16.0),
                   CustomTextFormField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _nameController,
+                    labelText: 'Full Name',
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                      if (!emailRegex.hasMatch(value)) {
-                        return 'Please enter a valid email';
+                        return 'Please enter your full name';
                       }
                       return null;
                     },
@@ -410,22 +452,22 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
                   _isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
-                    onPressed: _createProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Text(
-                      'Create Profile',
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                          onPressed: _createProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: const Text(
+                            'Create Profile',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -451,16 +493,17 @@ class ProfileImage extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          margin: const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
+          margin:
+              const EdgeInsets.all(8.0), // Add margin around the CircleAvatar
           child: CircleAvatar(
             radius: 60,
             backgroundImage: image != null ? FileImage(image!) : null,
             child: image == null
                 ? const Icon(
-              Icons.person,
-              size: 60,
-              color: Colors.grey,
-            )
+                    Icons.person,
+                    size: 60,
+                    color: Colors.grey,
+                  )
                 : null,
           ),
         ),
@@ -491,6 +534,7 @@ class CustomTextFormField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?) validator;
   final bool readOnly;
+  final bool isGrayedOut;
   final VoidCallback? onTap;
 
   const CustomTextFormField({
@@ -501,6 +545,8 @@ class CustomTextFormField extends StatelessWidget {
     this.inputFormatters,
     required this.validator,
     this.readOnly = false,
+    this.isGrayedOut =
+        false, // New parameter to control the grayed-out appearance
     this.onTap,
   });
 
@@ -519,6 +565,7 @@ class CustomTextFormField extends StatelessWidget {
       validator: validator,
       readOnly: readOnly,
       onTap: onTap,
+      enabled: !isGrayedOut, // Disables the field if grayed out
     );
   }
 }
