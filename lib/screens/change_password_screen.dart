@@ -22,7 +22,10 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> _changePassword() async {
+    // Capture the scaffold messenger and navigator instances
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -42,12 +45,12 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
         // Update the password
         await user.updatePassword(_passwordController.text);
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(
             content: Text('Password successfully updated.'),
           ),
         );
-        Navigator.of(context).pop();
+        navigator.pop();
       }
     } on FirebaseAuthException catch (error) {
       String errmsg;
@@ -66,6 +69,7 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
       });
     }
   }
+
 
   Widget _buildPasswordField() {
     return TextFormField(
