@@ -28,6 +28,7 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
   final TextEditingController _designationController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _linkedInController = TextEditingController();
   File? _image;
   bool _isLoading = false;
   String? _selectedYear;
@@ -148,8 +149,23 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
             'address': _addressController.text.trim(),
             'year': _selectedYear,
             'course': _selectedCourse,
+            'linkedin':_linkedInController.text.trim(),
             'imageUrl': imageUrl,
             'blurHash': blurHash,
+            'role':'user',
+            'visibility': {
+              'email': true,
+              'name': true,
+              'phone': false,
+              'dob': false,
+              'organization': true,
+              'designation': true,
+              'city': true,
+              'address': false,
+              'year': true,
+              'course': true,
+              'linkedin':true
+            }
           });
 
           // Store the city under the user's UID in the "filters/cities" node
@@ -283,7 +299,9 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Profile'),
+        title: const Text('Create Profile',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      backgroundColor: const Color(0xff986ae7),
       ),
       body: SafeArea(
         child: Padding(
@@ -332,7 +350,7 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
                         return 'Please enter your phone number';
                       }
                       final phoneRegex = RegExp(r'^\+?\d{10,15}$');
-                      if (!phoneRegex.hasMatch(value)) {
+                      if (!phoneRegex.hasMatch(value.trim())) {
                         return 'Please enter a valid phone number';
                       }
                       return null;
@@ -403,6 +421,19 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  CustomTextFormField(
+                    controller: _linkedInController,
+                    labelText: 'LinkedIn Profile (optional)',
+                    keyboardType: TextInputType.url,
+                    validator: (value) {
+                      final linkedInRegex = RegExp(r'^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]{5,30}\/?$');
+                      if (value == null || !linkedInRegex.hasMatch(value.trim())) {
+                        return 'Please enter a valid LinkedIn Profile Link';
                       }
                       return null;
                     },

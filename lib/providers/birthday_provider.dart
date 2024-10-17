@@ -19,21 +19,25 @@ class BirthdayNotifier extends StateNotifier<BirthdayState> {
       if (snapshot.exists) {
         List<Map<String, dynamic>> birthdays = [];
         DateTime now = DateTime.now();
+        DateTime today = DateTime(now.year, now.month, now.day);
 
         // Loop through each course node
         for (var courseNode in snapshot.children) {
-
-          final Map<String, dynamic> usersData = Map<String, dynamic>.from(courseNode.value as Map);
+          final Map<String, dynamic> usersData =
+          Map<String, dynamic>.from(courseNode.value as Map);
 
           usersData.forEach((uid, userData) {
             final userMap = Map<String, dynamic>.from(userData as Map);
             if (userMap.containsKey('dob')) {
               DateTime dob = DateFormat('dd/MM/yyyy').parse(userMap['dob']);
-              DateTime nextBirthday = DateTime(now.year, dob.month, dob.day);
-              if (nextBirthday.isBefore(now)) {
-                nextBirthday = DateTime(now.year + 1, dob.month, dob.day);
+              DateTime nextBirthday = DateTime(today.year, dob.month, dob.day);
+
+              // Adjust logic to include today’s birthday and those within 30 days
+              if (nextBirthday.isBefore(today)) {
+                nextBirthday = DateTime(today.year + 1, dob.month, dob.day);
               }
-              if (nextBirthday.difference(now).inDays <= 30) {
+
+              if (nextBirthday.difference(today).inDays <= 30) {
                 birthdays.add({
                   'name': userMap['name'],
                   'dob': userMap['dob'],

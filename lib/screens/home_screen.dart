@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../providers/birthday_provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/upcoming_birthdays_section.dart';
@@ -116,7 +115,7 @@ class HomeScreenState extends ConsumerState<HomeScreen> {
         currentCourse: userState.course,
         currentYear: userState.year,
       ),
-      const NewsPage(),
+      NewsPage(),
       ProfilePage(
         userName: userState.name,
         userEmail: userState.email,
@@ -317,21 +316,24 @@ class HomeScreenState extends ConsumerState<HomeScreen> {
       itemBuilder: (context, index, realIdx) {
         return SizedBox(
           height: 300.0,
-          child: CachedNetworkImage(
-            imageUrl: imageUrls[index],
-            placeholder: (context, url) => Shimmer.fromColors(
-              baseColor: Colors.grey[300]!,
-              highlightColor: Colors.grey[100]!,
-              child: Container(
-                height: 300.0, // Match the container height
-                color: Colors.white,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20.0), // Adjust the radius as needed
+            child: CachedNetworkImage(
+              imageUrl: imageUrls[index],
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  height: 300.0, // Match the container height
+                  color: Colors.white,
+                ),
               ),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+              fit: BoxFit.cover, // Ensures the image covers the entire container
+              width: double.infinity,
+              height: 300.0,
+              // Set the same height for the image
             ),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
-            fit: BoxFit.cover, // Ensures the image covers the entire container
-            width: double.infinity,
-            height: 300.0,
-            // Set the same height for the image
           ),
         );
       },
@@ -345,5 +347,6 @@ class HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
 }
 

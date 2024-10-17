@@ -1,7 +1,9 @@
+import 'package:alumniconnect/screens/visibility_settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../Widgets/snack_bar.dart';
 import '../widgets/user_avatar.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
@@ -82,6 +84,7 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileOptions() {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,7 +95,7 @@ class ProfilePageState extends State<ProfilePage> {
           onTap: () => _navigateToEditProfile(context),
         ),
         ProfileOption(
-          icon: Icons.lock_outline,
+          icon: Icons.password_outlined,
           text: 'Change Password',
           onTap: () {
             Navigator.push(
@@ -102,12 +105,25 @@ class ProfilePageState extends State<ProfilePage> {
             );
           },
         ),
+        ProfileOption(
+          icon: Icons.visibility_outlined,
+          text: 'Visibility',
+          subtitle: 'Personalize your profile',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const VisibilitySettingsScreen()),
+            );
+          },
+        ),
         _buildSectionTitle('App'),
         ProfileOption(
           icon: Icons.group_outlined,
           text: 'Invite Friends',
           onTap: () {
-            // Implement invite friends navigation or function
+            showSnackBar(
+                scaffoldMessenger, "Under development ! ", Colors.grey);
           },
           subtitle: 'Invite your friends to join the app',
         ),
@@ -116,14 +132,16 @@ class ProfilePageState extends State<ProfilePage> {
           icon: Icons.help_outline_rounded,
           text: 'Help',
           onTap: () {
-            // Implement help navigation or function
+            showSnackBar(
+                scaffoldMessenger, "Under development ! ", Colors.grey);
           },
         ),
         ProfileOption(
           icon: Icons.description_outlined,
           text: 'Terms of Service',
           onTap: () {
-            // Implement terms of service navigation or function
+            showSnackBar(
+                scaffoldMessenger, "Under development ! ", Colors.grey);
           },
         ),
         ProfileOption(
@@ -196,8 +214,8 @@ class ProfilePageState extends State<ProfilePage> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                'Error signing out: ${e.toString()}. Please try again.'),
+            content:
+                Text('Error signing out: ${e.toString()}. Please try again.'),
           ),
         );
       }
@@ -280,17 +298,22 @@ class ProfileOption extends StatelessWidget {
       child: ListTile(
         leading: Icon(
           icon,
-          color: iconColor ?? const Color(0xff575f64), // Use provided icon color or default
+          color: iconColor ??
+              const Color(0xff575f64), // Use provided icon color or default
           size: 28,
         ),
         title: Text(
           text,
-          style: fontStyle ?? const TextStyle( // Use provided font style or default
-            fontSize: 16.0,
-            fontWeight: FontWeight.w500,
-          ),
+          style: fontStyle ??
+              const TextStyle(
+                // Use provided font style or default
+                fontSize: 16.0,
+                fontWeight: FontWeight.w500,
+              ),
         ),
-        subtitle: subtitle != null ? Text(subtitle!) : null, // Show subtitle if provided
+        subtitle: subtitle != null
+            ? Text(subtitle!)
+            : null, // Show subtitle if provided
         onTap: onTap,
       ),
     );

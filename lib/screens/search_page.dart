@@ -454,6 +454,7 @@ class SearchPageState extends State<SearchPage> {
         ),
       ),
     );
+
   }
 
   void _showTooltip(BuildContext context) {

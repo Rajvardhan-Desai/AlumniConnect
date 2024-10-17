@@ -197,7 +197,7 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff9162ff),
+                        backgroundColor: const Color(0xffa57eff),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.0),
                         ),

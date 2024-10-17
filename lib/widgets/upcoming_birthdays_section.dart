@@ -31,20 +31,24 @@ class UpcomingBirthdaysSection extends StatelessWidget {
         const SizedBox(height: 10),
         ...limitedBirthdays.map((birthday) {
           DateTime dob = DateFormat('dd/MM/yyyy').parse(birthday['dob']);
-          DateTime nextBirthday = DateTime(DateTime.now().year, dob.month, dob.day);
-          if (nextBirthday.isBefore(DateTime.now())) {
-            nextBirthday = DateTime(DateTime.now().year + 1, dob.month, dob.day);
+          DateTime now = DateTime.now();
+          DateTime today = DateTime(now.year, now.month, now.day);
+          DateTime nextBirthday = DateTime(today.year, dob.month, dob.day);
+
+          if (nextBirthday.isBefore(today)) {
+            nextBirthday = DateTime(today.year + 1, dob.month, dob.day);
           }
-          int daysLeft = nextBirthday.difference(DateTime.now()).inDays;
+
+          int daysLeft = nextBirthday.difference(today).inDays;
 
           return BirthdayCard(
             name: birthday['name'],
-            birthday: birthday['dob'],
+            birthday: dob, // Pass DateTime object instead of string
             daysLeft: daysLeft,
             isToday: daysLeft == 0,
             imageUrl: birthday['imageUrl'],
             blurHash: birthday['blurHash'],
-            userProfile: birthday,  // Passing the entire user profile
+            userProfile: birthday, // Passing the entire user profile
           );
         })
       ],
@@ -52,11 +56,9 @@ class UpcomingBirthdaysSection extends StatelessWidget {
   }
 }
 
-
-
 class BirthdayCard extends StatelessWidget {
   final String name;
-  final String birthday;
+  final DateTime birthday; // Change to DateTime type
   final int daysLeft;
   final bool isToday;
   final String? imageUrl;
@@ -76,9 +78,11 @@ class BirthdayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String formattedBirthday = DateFormat('MMMM d').format(birthday); // Format the date
+
     return Card(
-      elevation: isToday ? 8 : 4,  // Highlight today's birthday with higher elevation
-      color: isToday ? Colors.purple[200] : null,  // Special color for today's birthday
+      elevation: isToday ? 8 : 4, // Highlight today's birthday with higher elevation
+      color: isToday ? Colors.purple[200] : null, // Special color for today's birthday
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -94,7 +98,7 @@ class BirthdayCard extends StatelessWidget {
         subtitle: Text(
           isToday
               ? '🎉 Today is the birthday!'
-              : 'Birthday: $birthday\nDays left: $daysLeft',
+              : 'Birthday: $formattedBirthday\nDays left: $daysLeft',
           style: TextStyle(
             fontSize: isToday ? 14 : 12,
             color: isToday ? Colors.white : Colors.black54,
@@ -113,5 +117,3 @@ class BirthdayCard extends StatelessWidget {
     );
   }
 }
-
-
