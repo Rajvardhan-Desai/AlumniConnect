@@ -54,4 +54,5 @@
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/alumniconnect.git
+   git clone [https://github.com/your-username/alumniconnect.git](https://github.com/Rajvardhan-Desai/AlumniConnect) 
+   
