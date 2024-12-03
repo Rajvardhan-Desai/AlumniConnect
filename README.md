@@ -55,4 +55,11 @@
 
    ```bash
    git clone [https://github.com/Rajvardhan-Desai/AlumniConnect]
+   cd AlumniConnect
 ---
+
+2. **Install dependencies:**
+    ```bash
+   flutter pub get
+---
+
