@@ -13,7 +13,7 @@
    - Profile creation and management.
 
 2. **Search & Filter Alumni**
-   - Search for alumni based on name, batch, or specialization.
+   - Search for alumni based on name.
    - Advanced filtering options for targeted results.
 
 3. **News**
@@ -27,7 +27,7 @@
 |-----------------------------------------|-----------------------------------------|-----------------------------------------|
 | **Home Page**                           | **Search Page**                         | **Filter Alumni**                        |
 
-| ![Profile Page](Screenshots/profile.png) | ![Visibility Settings](Screenshots/visibility.png) | ![News Page](images/news.png) |
+| ![Profile Page](Screenshots/profile.png) | ![Visibility Settings](Screenshots/visibility.png) | ![News Page](Screenshots/news.png) |
 |------------------------------------------|------------------------------------------|------------------------------------------|
 | **Profile Page**                         | **Privacy/Visibility Settings**          | **News Page**                            |
 
