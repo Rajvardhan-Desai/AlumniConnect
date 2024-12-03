@@ -21,15 +21,35 @@
 
 ---
 
-## Screenshots
+## Home Page
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/home_page.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
 
-| ![Home Page](Screenshots/home_page.png) | ![Search Alumni](Screenshots/search.png) | ![Filter Alumni](Screenshots/filter_alumni.png) |
-|-----------------------------------------|-----------------------------------------|-----------------------------------------|
-| **Home Page**                           | **Search Page**                         | **Filter Alumni**                        |
+## Search Page
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/search.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
 
-| ![Profile Page](Screenshots/profile.png) | ![Visibility Settings](Screenshots/visibility.png) | ![News Page](Screenshots/news.png) |
-|------------------------------------------|------------------------------------------|------------------------------------------|
-| **Profile Page**                         | **Privacy/Visibility Settings**          | **News Page**                            |
+## Filter Alumni
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/filter_alumni.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
+
+## Profile Page
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/profile.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
+
+## Privacy/Visibility Settings
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/visibility.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
+
+## News Page
+<div style="display: inline-block; width: 300px; margin: 10px;">
+  <img src="Screenshots/news.png" width="100%" height="300px" style="object-fit: cover;">
+</div>
 
 ---
 
