@@ -1,6 +1,6 @@
 AlumniConnect is a dedicated platform designed to serve the alumni of the Institute of Civil and Rural Engineering.
 
-| ![Home Page](Screenshots/home.png) | ![Screenshot 2](images/screenshot2.png) | ![Screenshot 3](images/screenshot3.png) |
+| ![Home Page](Screenshots/home_page.png) | ![Search Alumni](Screenshots/search.png) | ![Filter Alumni](Screenshots/filter_alumni.png) |
 |-----------------------------------------|-----------------------------------------|-----------------------------------------|
 | Home Page                               | Settings Page                           | Profile Page                            |
 | ![Screenshot 4](images/screenshot4.png) | ![Screenshot 5](images/screenshot5.png) | ![Screenshot 6](images/screenshot6.png) |
