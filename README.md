@@ -54,4 +54,36 @@
 1. **Clone the repository:**
 
    ```bash
-   git clone [https://github.com/Rajvardhan-Desai/AlumniConnect] 
+   git clone [https://github.com/Rajvardhan-Desai/AlumniConnect]
+
+2. Navigate to the project directory:
+
+```bash
+   cd AlumniConnect
+
+3. Install dependencies:
+
+```bash
+   flutter pub get
+
+
+4. Configure Firebase:
+
+Go to the Firebase Console, create a new Firebase project (if you haven't already), and follow the setup instructions.
+
+For Android, download the google-services.json file and place it in the android/app directory of your project.
+
+For iOS, download the GoogleService-Info.plist file and place it in the ios/Runner directory of your project.
+
+
+
+5. Run the application:
+
+Finally, run the application on an emulator or a connected device by executing:
+
+flutter run
+
+
+
+
+---
