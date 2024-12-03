@@ -2,9 +2,11 @@ AlumniConnect is a dedicated platform designed to serve the alumni of the Instit
 
 | ![Home Page](Screenshots/home_page.png) | ![Search Alumni](Screenshots/search.png) | ![Filter Alumni](Screenshots/filter_alumni.png) |
 |-----------------------------------------|-----------------------------------------|-----------------------------------------|
-| Home Page                               | Settings Page                           | Profile Page                            |
-| ![Screenshot 4](images/screenshot4.png) | ![Screenshot 5](images/screenshot5.png) | ![Screenshot 6](images/screenshot6.png) |
-| Map View                                | Alerts Page                             | Feedback Page                           |
+| Home Page                               | Search Page                           | 
+Filter Alumni                            |
+| ![Profile Page 
+](Screenshots/profile.png) | ![Visibility](Screenshots/visibility.png) | ![News Page](images/news.png) |
+| Profile Page                               | Privacy/Visibility Settings                           | News Page                           |
 
 
 AlumniConnect offers a centralized space for alumni to stay connected.
